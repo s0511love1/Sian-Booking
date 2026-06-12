@@ -1,0 +1,1565 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Sian 嫻美學 · 訂單管理系統</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   RESET & ROOT
+   ============================================================ */
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --rose:#C4A49A;--rose-light:#E8D5CC;--rose-bg:#F2EBE6;--rose-deep:#6B5C58;
+  --sage:#A8B5A2;--sage-bg:#EBF0EA;
+  --warm:#F7F2EF;--white:#fff;
+  --text:#4A3F3C;--sub:#9B8B87;--line:#DDD0CB;--border-light:#F2EBE6;
+  --red:#B91C1C;--red-bg:#FEE2E2;--red-light:#FEF2F2;
+  --green:#166534;--green-bg:#DCFCE7;
+  --amber:#92400E;--amber-bg:#FEF3C7;
+  --unpaid-bg:#FEF2F2;--unpaid-border:#F87171;--unpaid-dot:#F87171;
+  --deposit-bg:#FFFBEB;--deposit-border:#FCD34D;--deposit-dot:#FCD34D;
+  --paid-bg:#F0FDF4;--paid-border:#A8B5A2;--paid-dot:#A8B5A2;
+  --nav-h:64px;
+  --font-en:'Cormorant Garamond',serif;
+  --font-main:'Noto Sans TC',sans-serif;
+}
+html,body{height:100%;overflow:hidden;background:var(--warm)}
+body{font-family:var(--font-main);font-size:14px;color:var(--text)}
+
+/* ============================================================
+   APP SHELL
+   ============================================================ */
+#app{display:flex;flex-direction:column;height:100vh;max-width:430px;margin:0 auto;background:var(--warm);position:relative;overflow:hidden}
+
+/* pages */
+.page{display:none;flex-direction:column;flex:1;overflow:hidden}
+.page.active{display:flex}
+.page-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(var(--nav-h) + 16px)}
+
+/* ============================================================
+   TOP BAR
+   ============================================================ */
+.topbar{background:var(--white);border-bottom:0.5px solid var(--line);padding:14px 20px;flex-shrink:0}
+.topbar-row{display:flex;align-items:center;justify-content:space-between}
+.topbar-title{font-size:18px;font-weight:500;color:var(--text)}
+.topbar-sub{font-size:11px;font-weight:400;letter-spacing:0.26em;color:var(--rose);margin-top:2px}
+.topbar-logo{font-family:var(--font-en);font-weight:300;font-size:20px;letter-spacing:0.18em;color:var(--rose-deep)}
+.topbar-actions{display:flex;align-items:center;gap:10px}
+.icon-btn{width:34px;height:34px;border-radius:50%;background:var(--rose-bg);border:0.5px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--rose);font-size:16px;cursor:pointer;position:relative;flex-shrink:0}
+.icon-btn .notif-dot{position:absolute;top:5px;right:5px;width:8px;height:8px;border-radius:50%;background:var(--unpaid-dot);border:1.5px solid var(--white)}
+.av{background:var(--rose-light);color:var(--rose-deep);font-size:13px;font-weight:500}
+
+/* ============================================================
+   BOTTOM NAV
+   ============================================================ */
+.bottom-nav{position:absolute;bottom:0;left:0;right:0;height:var(--nav-h);background:var(--white);border-top:0.5px solid var(--line);display:flex;align-items:flex-start;padding-top:8px;z-index:100}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;color:var(--sub);transition:color 0.15s;padding-top:2px}
+.nav-item.active{color:var(--rose-deep)}
+.nav-item i{font-size:21px}
+.nav-item span{font-size:10px;font-weight:500}
+.nav-fab-wrap{flex:1;display:flex;justify-content:center;align-items:flex-start}
+.nav-fab{width:50px;height:50px;border-radius:50%;background:var(--rose-deep);display:flex;align-items:center;justify-content:center;color:var(--white);font-size:24px;margin-top:-18px;border:3px solid var(--warm);cursor:pointer;transition:opacity 0.15s;flex-shrink:0}
+.nav-fab:hover{opacity:0.85}
+
+/* ============================================================
+   COMMON COMPONENTS
+   ============================================================ */
+.panel{background:var(--white);border:0.5px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:10px}
+.sec-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.sec-title{font-size:12px;font-weight:500;letter-spacing:0.14em;color:var(--rose)}
+.sec-link{font-size:12px;font-weight:400;color:var(--sub);cursor:pointer}
+.sec-link:hover{color:var(--rose)}
+.sec-divider{font-size:11px;font-weight:500;letter-spacing:0.16em;color:var(--rose);display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.sec-divider::after{content:'';flex:1;height:0.5px;background:var(--line)}
+.badge{font-size:11px;font-weight:500;padding:3px 10px;border-radius:20px;flex-shrink:0;white-space:nowrap}
+.badge-pending{background:var(--amber-bg);color:var(--amber)}
+.badge-confirmed{background:var(--green-bg);color:var(--green)}
+.badge-done{background:var(--warm);color:var(--sub)}
+.badge-review{background:var(--red-bg);color:var(--red)}
+.badge-unpaid{background:var(--red-bg);color:var(--red)}
+.badge-deposit{background:var(--amber-bg);color:var(--amber)}
+.badge-paid{background:var(--green-bg);color:var(--green)}
+.dot{width:6px;height:6px;border-radius:50%;display:inline-block;flex-shrink:0}
+.field{margin-bottom:14px}
+.fl{font-size:12px;font-weight:500;color:var(--sub);letter-spacing:0.06em;margin-bottom:6px;display:block}
+.fl .req{color:var(--unpaid-dot);margin-left:2px}
+input[type=text],input[type=tel],input[type=date],input[type=time],input[type=number],input[type=email],select,textarea{width:100%;border:0.5px solid var(--line);border-radius:9px;padding:10px 14px;font-size:14px;font-weight:400;font-family:var(--font-main);color:var(--text);background:var(--white);transition:border-color 0.15s;-webkit-appearance:none;appearance:none}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--rose)}
+input[type=number]:focus{border-color:var(--rose) !important}
+input::placeholder,textarea::placeholder{color:#C5B8B4}
+textarea{resize:vertical;line-height:1.7}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7' viewBox='0 0 11 7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%23B5A8A4' stroke-width='1.2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center}
+.drow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.chip{font-size:12px;font-weight:400;padding:6px 13px;border-radius:20px;border:0.5px solid var(--line);background:var(--white);color:var(--sub);cursor:pointer;transition:all 0.15s;user-select:none}
+.chip:hover{border-color:var(--rose)}
+.chip.on{background:var(--rose-light);border-color:var(--rose);color:var(--rose-deep);font-weight:500}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+
+/* bottom sheet */
+.sheet-bg{position:absolute;inset:0;background:rgba(74,63,60,0.3);z-index:200;display:none;align-items:flex-end}
+.sheet-bg.show{display:flex}
+.sheet{background:var(--white);border-radius:20px 20px 0 0;width:100%;max-height:90%;overflow-y:auto;padding-bottom:32px}
+.sheet-handle{width:36px;height:4px;background:var(--line);border-radius:2px;margin:12px auto 14px}
+.sheet-head{padding:0 20px 14px;border-bottom:0.5px solid var(--line);display:flex;align-items:center;justify-content:space-between}
+.sheet-title{font-size:16px;font-weight:500;color:var(--text)}
+.sheet-close{color:var(--sub);font-size:18px;cursor:pointer;padding:4px}
+.sheet-body{padding:16px 20px}
+.srow{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:0.5px solid var(--border-light)}
+.srow:last-child{border-bottom:none}
+.skey{font-size:13px;font-weight:400;color:var(--sub)}
+.sval{font-size:13px;font-weight:500;color:var(--text);text-align:right;flex:1;margin-left:12px}
+.sheet-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:14px 20px 0;border-top:0.5px solid var(--line);margin-top:8px}
+.sact{padding:11px;border-radius:10px;font-size:13px;font-weight:500;font-family:var(--font-main);cursor:pointer;text-align:center;border:0.5px solid var(--line);background:var(--white);color:var(--text);transition:all 0.15s}
+.sact:hover{background:var(--rose-bg);border-color:var(--rose)}
+.sact.primary{background:var(--rose-deep);color:var(--white);border-color:var(--rose-deep)}
+.sact.primary:hover{opacity:0.85}
+.sact.danger{color:var(--red)}
+.sact.danger:hover{background:var(--red-light)}
+
+/* bar */
+.bar-bg{height:5px;background:var(--warm);border-radius:3px;margin-top:8px}
+.bar-fill{height:5px;border-radius:3px;background:var(--rose)}
+.bar-leg{display:flex;justify-content:space-between;margin-top:5px}
+.bar-leg span{font-size:11px;font-weight:400;color:var(--sub)}
+
+/* ============================================================
+   PAGE 1: DASHBOARD
+   ============================================================ */
+.dash-date{font-size:12px;font-weight:400;color:var(--sub);padding:14px 16px 0}
+.review-banner{background:var(--red-light);border:0.5px solid var(--unpaid-border);border-radius:12px;padding:13px 15px;margin:12px 16px 0;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.review-banner-left{display:flex;align-items:center;gap:10px}
+.review-banner-icon{width:36px;height:36px;border-radius:10px;background:var(--red-bg);display:flex;align-items:center;justify-content:center;color:var(--red);font-size:18px;flex-shrink:0}
+.review-banner-title{font-size:14px;font-weight:700;color:var(--red)}
+.review-banner-sub{font-size:12px;font-weight:400;color:var(--sub);margin-top:2px}
+.review-count{background:var(--unpaid-dot);color:var(--white);font-size:11px;font-weight:700;padding:1px 7px;border-radius:20px;margin-left:6px}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px 16px}
+.stat{background:var(--white);border:0.5px solid var(--line);border-radius:12px;padding:14px 16px}
+.stat-l{font-size:12px;font-weight:500;color:var(--sub);letter-spacing:0.06em;margin-bottom:6px}
+.stat-v{font-family:var(--font-en);font-weight:300;font-size:32px;color:var(--rose-deep);line-height:1;margin-bottom:3px}
+.stat-v.warn{color:var(--rose)}
+.stat-s{font-size:11px;font-weight:400;color:var(--sub);display:flex;align-items:center;gap:4px}
+.dash-section{padding:0 16px;margin-bottom:12px}
+.sched-item{display:flex;gap:10px;padding:9px 0;border-bottom:0.5px solid var(--border-light)}
+.sched-item:last-child{border-bottom:none;padding-bottom:0}
+.sched-item:first-child{padding-top:0}
+.sched-time{font-size:12px;font-weight:500;color:var(--rose);width:40px;flex-shrink:0;padding-top:2px}
+.sched-card{flex:1;background:var(--rose-bg);border-radius:8px;padding:9px 12px;border-left:2px solid var(--rose)}
+.sched-card.g{border-left-color:var(--sage);background:var(--sage-bg)}
+.sched-card.m{border-left-color:#B5A8A0;background:#F0EDE9}
+.sched-name{font-size:13px;font-weight:500;color:var(--text);margin-bottom:2px}
+.sched-detail{font-size:12px;font-weight:400;color:var(--sub);line-height:1.5}
+.order-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:0.5px solid var(--border-light);cursor:pointer}
+.order-row:last-child{border-bottom:none;padding-bottom:0}
+.order-row:first-child{padding-top:0}
+.order-av{width:34px;height:34px;border-radius:50%;background:var(--rose-bg);border:0.5px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;color:var(--rose);flex-shrink:0}
+.order-av.new{background:var(--red-bg);border-color:#FCA5A5;color:var(--red)}
+.order-info{flex:1;min-width:0}
+.order-name{font-size:14px;font-weight:500;color:var(--text)}
+.order-meta{font-size:12px;font-weight:400;color:var(--sub);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ============================================================
+   PAGE 2: CALENDAR
+   ============================================================ */
+.cal-topbar{background:var(--white);border-bottom:0.5px solid var(--line);padding:12px 20px;flex-shrink:0}
+.cal-month-nav{display:flex;align-items:center;justify-content:space-between;margin-top:8px}
+.mnav-btn{width:32px;height:32px;border-radius:8px;background:var(--rose-bg);border:0.5px solid var(--line);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--rose-deep);font-size:16px}
+.mnav-label{font-size:15px;font-weight:500;color:var(--text)}
+.pay-legend{display:flex;gap:14px;padding:8px 20px;background:var(--white);border-bottom:0.5px solid var(--line);flex-shrink:0}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:400;color:var(--sub)}
+.leg-dot{width:10px;height:10px;border-radius:3px}
+.cal-grid-wrap{background:var(--white);flex-shrink:0}
+.cal-header{display:grid;grid-template-columns:repeat(7,1fr);padding:0 8px}
+.cal-dname{font-size:11px;font-weight:500;color:var(--sub);text-align:center;padding:6px 0}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--border-light);padding:0 8px 8px}
+.day-cell{background:var(--white);min-height:52px;padding:4px 3px;cursor:pointer;border-radius:6px;transition:background 0.1s}
+.day-cell:hover{background:var(--rose-bg)}
+.day-cell.selected{background:var(--rose-bg)}
+.day-cell.other{opacity:0.3}
+.day-num{font-size:12px;font-weight:400;color:var(--sub);text-align:center;margin-bottom:3px}
+.day-num.today-num{width:22px;height:22px;background:var(--rose);color:var(--white);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;margin:0 auto 3px}
+.dot-row{display:flex;justify-content:center;gap:3px;flex-wrap:wrap}
+.cdot{width:9px;height:9px;border-radius:3px}
+.cdot.unpaid{background:#F87171}
+.cdot.deposit{background:#F59E0B}
+.cdot.paid{background:#22C55E}
+.day-detail{flex:1;overflow-y:auto;padding:12px 16px 80px}
+.detail-head{font-size:12px;font-weight:500;letter-spacing:0.1em;color:var(--rose);margin-bottom:10px}
+.empty-day{text-align:center;padding:32px 0;color:var(--sub);font-size:13px;line-height:1.8}
+.tcard{border-radius:12px;padding:14px 16px;margin-bottom:10px;border-left:4px solid transparent}
+.tcard.unpaid{background:var(--unpaid-bg);border-left-color:var(--unpaid-border)}
+.tcard.deposit{background:var(--deposit-bg);border-left-color:var(--deposit-border)}
+.tcard.paid{background:#F0FDF4;border-left-color:#22C55E}
+.tcard-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px}
+.tcard-name{font-size:15px;font-weight:500;color:var(--text)}
+.tcard-svc{font-size:12px;font-weight:400;color:var(--sub);margin-top:2px}
+.tcard-meta{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px}
+.tmeta{display:flex;align-items:center;gap:4px;font-size:12px;font-weight:400;color:var(--sub)}
+.tcard-note{font-size:12px;color:var(--sub);background:rgba(255,255,255,0.6);border-radius:6px;padding:6px 10px;line-height:1.5;margin-bottom:8px}
+.tcard-actions{display:flex;gap:8px}
+.tact{flex:1;padding:8px;border-radius:8px;font-size:12px;font-weight:500;font-family:var(--font-main);cursor:pointer;border:0.5px solid rgba(0,0,0,0.08);background:rgba(255,255,255,0.7);color:var(--text);text-align:center;transition:all 0.15s}
+.tact.pay-act{background:var(--rose-deep);color:var(--white);border-color:var(--rose-deep)}
+
+/* ============================================================
+   PAGE 3: PAYMENT
+   ============================================================ */
+.pay-topbar{background:var(--white);border-bottom:0.5px solid var(--line);padding:14px 20px;flex-shrink:0}
+.pay-tab-row{display:flex;border-bottom:0.5px solid var(--line);background:var(--white);flex-shrink:0}
+.pay-tab{flex:1;text-align:center;padding:10px 0;font-size:13px;font-weight:400;color:var(--sub);cursor:pointer;border-bottom:2px solid transparent;transition:all 0.15s}
+.pay-tab.on{color:var(--rose-deep);font-weight:500;border-bottom-color:var(--rose)}
+.pay-filter-tabs{display:flex;gap:8px;padding:10px 16px;overflow-x:auto;flex-shrink:0;background:var(--white);border-bottom:0.5px solid var(--line)}
+.pay-filter-tabs::-webkit-scrollbar{display:none}
+.ftab{font-size:12px;font-weight:500;padding:5px 13px;border-radius:20px;cursor:pointer;white-space:nowrap;border:0.5px solid var(--line);background:var(--white);color:var(--sub);transition:all 0.15s;flex-shrink:0}
+.ftab.on{background:var(--rose-bg);border-color:var(--rose);color:var(--rose-deep)}
+.sum-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px 16px 0}
+.sum-card{background:var(--white);border:0.5px solid var(--line);border-radius:12px;padding:14px 16px}
+.sum-card.full{grid-column:span 2}
+.sum-card.expense-card{border-color:#FCA5A5}
+.sum-card.net-card{border-color:var(--paid-border)}
+.sum-l{font-size:12px;font-weight:500;color:var(--sub);letter-spacing:0.06em;margin-bottom:6px}
+.sum-v{font-family:var(--font-en);font-weight:300;font-size:26px;color:var(--rose-deep);line-height:1;margin-bottom:3px}
+.sum-v.red{color:var(--red)}
+.sum-v.green{color:var(--green)}
+.pcard{background:var(--white);border:0.5px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:8px;position:relative;overflow:hidden}
+.pcard-accent{position:absolute;left:0;top:0;bottom:0;width:3px}
+.pcard-accent.unpaid{background:var(--unpaid-dot)}
+.pcard-accent.deposit{background:var(--deposit-dot)}
+.pcard-accent.paid{background:var(--paid-dot)}
+.pcard-inner{padding-left:8px}
+.pcard-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px}
+.pcard-name{font-size:15px;font-weight:500;color:var(--text)}
+.pcard-svc{font-size:12px;font-weight:400;color:var(--sub);margin-top:2px}
+.amt-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px}
+.amt-box{background:var(--warm);border-radius:8px;padding:8px 10px}
+.amt-label{font-size:10px;font-weight:400;color:var(--sub);margin-bottom:3px}
+.amt-val{font-size:13px;font-weight:500;color:var(--text)}
+.amt-val.red{color:var(--red)}
+.amt-val.green{color:var(--green)}
+.amt-val.amber{color:var(--amber)}
+.pcard-date{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--sub)}
+.pcard-actions{display:flex;gap:8px;margin-top:10px}
+.pact-btn{flex:1;padding:8px;border-radius:8px;font-size:12px;font-weight:500;font-family:var(--font-main);cursor:pointer;border:0.5px solid var(--line);background:var(--white);color:var(--text);text-align:center}
+.pact-btn.primary{background:var(--rose-deep);color:var(--white);border-color:var(--rose-deep)}
+.ecard{background:var(--white);border:0.5px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:8px;position:relative;overflow:hidden}
+.ecard-accent{position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--unpaid-dot)}
+.ecard-inner{padding-left:8px}
+.ecard-top{display:flex;align-items:center;justify-content:space-between}
+.ecard-name{font-size:14px;font-weight:500;color:var(--text)}
+.ecard-cat{font-size:12px;font-weight:400;color:var(--sub);margin-top:2px}
+.ecard-amt{font-size:16px;font-weight:700;color:var(--red)}
+.add-exp-btn{width:100%;background:var(--white);border:0.5px dashed var(--line);border-radius:12px;padding:14px;font-size:13px;font-weight:500;font-family:var(--font-main);color:var(--sub);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:8px}
+.add-exp-btn:hover{border-color:var(--rose);color:var(--rose-deep)}
+
+/* ============================================================
+   PAGE 4: CLIENTS
+   ============================================================ */
+.search-wrap{position:relative}
+.search-icon{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:#B5A8A4;font-size:15px;pointer-events:none}
+.search-input{padding-left:40px !important;background:var(--warm) !important}
+.search-input:focus{background:var(--white) !important}
+.ccard{background:var(--white);border:0.5px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:8px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:border-color 0.15s}
+.ccard:hover{border-color:var(--rose)}
+.cavatar{width:44px;height:44px;border-radius:50%;background:var(--rose-bg);border:0.5px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:500;color:var(--rose);flex-shrink:0}
+.cavatar.repeat{background:var(--rose-light);border-color:var(--rose)}
+.cinfo{flex:1;min-width:0}
+.cname-row{display:flex;align-items:center;gap:6px;margin-bottom:3px}
+.cname{font-size:15px;font-weight:500;color:var(--text)}
+.repeat-badge{font-size:10px;font-weight:500;padding:2px 7px;border-radius:20px;background:var(--rose-light);color:var(--rose-deep)}
+.ctags{display:flex;gap:5px;flex-wrap:wrap;margin-top:4px}
+.ctag{font-size:10px;padding:2px 8px;border-radius:20px;background:var(--warm);color:var(--sub);border:0.5px solid var(--line)}
+.ctag.warn{background:var(--red-light);color:var(--red);border-color:#FCA5A5}
+.cright{text-align:right;flex-shrink:0}
+.corder-count{font-size:12px;font-weight:500;color:var(--rose)}
+.clast{font-size:11px;color:var(--sub);margin-top:2px}
+.tag-cats{padding:0 0 4px}
+.cat-row{margin-bottom:12px}
+.cat-label{font-size:11px;font-weight:500;letter-spacing:0.16em;color:var(--rose);margin-bottom:7px}
+.tag-chip{font-size:12px;padding:5px 12px;border-radius:20px;border:0.5px solid var(--line);background:var(--white);color:var(--sub);cursor:pointer;transition:all 0.15s}
+.tag-chip.on{background:var(--rose-light);border-color:var(--rose);color:var(--rose-deep);font-weight:500}
+.add-tag-chip{font-size:12px;padding:5px 12px;border-radius:20px;border:0.5px dashed var(--line);background:var(--warm);color:var(--sub);cursor:pointer;display:flex;align-items:center;gap:4px}
+.rcard{background:var(--white);border:0.5px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:8px}
+.rcard-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:5px}
+.rcard-name{font-size:15px;font-weight:500;color:var(--text)}
+.rcard-type{font-size:11px;padding:2px 8px;border-radius:20px;background:var(--warm);color:var(--sub);border:0.5px solid var(--line)}
+.rcard-svc{font-size:13px;color:var(--sub);margin-bottom:5px}
+.rcard-date{display:flex;align-items:center;gap:5px;font-size:13px;font-weight:500;color:var(--rose-deep);margin-bottom:7px}
+.rtag{font-size:11px;padding:2px 9px;border-radius:20px;background:var(--rose-bg);color:var(--sub);border:0.5px solid var(--line)}
+.rtag.match{background:var(--rose-light);border-color:var(--rose);color:var(--rose-deep);font-weight:500}
+.hist-card{background:var(--warm);border-radius:10px;padding:11px 13px;margin-bottom:6px}
+.hist-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:3px}
+.hist-name{font-size:13px;font-weight:500;color:var(--text)}
+.hist-date{font-size:12px;color:var(--sub)}
+.hist-meta{font-size:12px;color:var(--sub)}
+.profile-hero{padding:18px 20px 16px;display:flex;align-items:center;gap:14px;border-bottom:0.5px solid var(--line)}
+.profile-av{width:54px;height:54px;border-radius:50%;background:var(--rose-bg);border:0.5px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:500;color:var(--rose)}
+.profile-av.repeat{background:var(--rose-light)}
+.profile-name{font-size:18px;font-weight:500;color:var(--text);margin-bottom:5px}
+.profile-sec{padding:14px 20px;border-bottom:0.5px solid var(--line)}
+.profile-sec:last-of-type{border-bottom:none}
+.skin-chip{font-size:12px;padding:4px 12px;border-radius:20px;background:var(--warm);border:0.5px solid var(--line);color:var(--text)}
+.skin-chip.warn{background:var(--red-light);border-color:#FCA5A5;color:var(--red)}
+
+/* ============================================================
+   ADD ORDER FORM (OVERLAY)
+   ============================================================ */
+#addOrderOverlay{position:absolute;inset:0;background:var(--warm);z-index:300;display:none;flex-direction:column}
+#addOrderOverlay.show{display:flex}
+.add-topbar{background:var(--white);padding:14px 20px;border-bottom:0.5px solid var(--line);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.add-steps{display:flex;align-items:center;padding:10px 20px;background:var(--white);border-bottom:0.5px solid var(--line);flex-shrink:0}
+.step{display:flex;flex-direction:column;align-items:center;flex:1;position:relative}
+.step:not(:last-child)::after{content:'';position:absolute;right:-50%;top:13px;width:100%;height:0.5px;background:var(--line);z-index:0}
+.step.done:not(:last-child)::after{background:var(--rose)}
+.step-dot{width:26px;height:26px;border-radius:50%;border:1.5px solid var(--line);background:var(--white);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:var(--sub);z-index:1;transition:all 0.2s}
+.step.on .step-dot{border-color:var(--rose);background:var(--rose);color:var(--white)}
+.step.done .step-dot{border-color:var(--sage);background:var(--sage);color:var(--white)}
+.step-label{font-size:10px;color:var(--sub);margin-top:3px}
+.step.on .step-label{color:var(--rose);font-weight:500}
+.add-content{flex:1;overflow-y:auto;padding:16px 20px 100px}
+.add-cta-bar{position:absolute;bottom:0;left:0;right:0;background:var(--white);border-top:0.5px solid var(--line);padding:12px 20px 24px;display:flex;gap:10px}
+.add-back{flex:1;padding:12px;border-radius:10px;font-size:14px;font-weight:500;font-family:var(--font-main);cursor:pointer;border:0.5px solid var(--line);background:var(--white);color:var(--sub);text-align:center}
+.add-next{flex:2;padding:12px;border-radius:10px;font-size:14px;font-weight:500;font-family:var(--font-main);cursor:pointer;border:none;background:var(--rose-deep);color:var(--white);text-align:center}
+.svc-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.svc-card{background:var(--white);border:0.5px solid var(--line);border-radius:10px;padding:13px 12px;cursor:pointer;position:relative;transition:all 0.15s}
+.svc-card:hover{border-color:var(--rose)}
+.svc-card.on{border-color:var(--rose);background:var(--rose-bg)}
+.svc-chk{position:absolute;top:10px;right:10px;width:16px;height:16px;border-radius:50%;border:0.5px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:9px;color:transparent;transition:all 0.15s}
+.svc-card.on .svc-chk{background:var(--rose);border-color:var(--rose);color:var(--white)}
+.svc-name{font-size:13px;font-weight:500;color:var(--text);padding-right:20px}
+.add-success{display:none;flex-direction:column;align-items:center;justify-content:center;padding:56px 28px;text-align:center;flex:1}
+.add-success-icon{width:56px;height:56px;border-radius:50%;background:var(--green-bg);border:0.5px solid var(--paid-border);display:flex;align-items:center;justify-content:center;margin-bottom:18px;font-size:22px;color:var(--green)}
+.add-success-en{font-family:var(--font-en);font-weight:300;font-size:26px;color:var(--rose-deep);margin-bottom:6px;letter-spacing:0.1em}
+.add-success-zh{font-size:14px;color:var(--sub);line-height:1.8}
+.add-success-btn{margin-top:24px;background:var(--rose-deep);color:var(--white);border:none;border-radius:10px;padding:12px 32px;font-size:14px;font-weight:500;font-family:var(--font-main);cursor:pointer}
+.client-search-wrap{position:relative;margin-bottom:14px}
+.client-dd{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--white);border:0.5px solid var(--line);border-radius:9px;box-shadow:0 4px 12px rgba(0,0,0,0.06);z-index:50;display:none}
+.client-dd.show{display:block}
+.client-opt{padding:10px 14px;cursor:pointer;border-bottom:0.5px solid var(--border-light);font-size:14px;color:var(--text)}
+.client-opt:last-child{border-bottom:none}
+.client-opt:hover{background:var(--rose-bg)}
+.client-opt-sub{font-size:11px;color:var(--sub);margin-top:2px}
+.existing-tag{display:inline-flex;align-items:center;gap:5px;background:var(--rose-bg);border:0.5px solid var(--rose);border-radius:20px;padding:4px 12px;font-size:12px;font-weight:500;color:var(--rose-deep);margin-bottom:10px}
+
+/* review sheet inner */
+.review-item{margin:0 20px;padding:14px 0;border-bottom:0.5px solid var(--line)}
+.review-item:last-child{border-bottom:none}
+.ri-top{display:flex;justify-content:space-between;margin-bottom:7px}
+.ri-name{font-size:15px;font-weight:500;color:var(--text)}
+.ri-svc{font-size:13px;color:var(--sub);margin-bottom:2px}
+.ri-time{font-size:11px;color:var(--sub)}
+.ri-metas{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:8px}
+.ri-meta{font-size:12px;color:var(--sub);display:flex;align-items:center;gap:3px}
+.ri-note{font-size:12px;color:var(--sub);background:var(--rose-bg);border-radius:7px;padding:7px 10px;line-height:1.5;margin-bottom:10px}
+.ri-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ri-btn{padding:10px;border-radius:9px;font-size:13px;font-weight:500;font-family:var(--font-main);cursor:pointer;text-align:center;border:0.5px solid var(--line);background:var(--white);color:var(--text);transition:all 0.15s}
+.ri-btn:hover{background:var(--rose-bg)}
+.ri-btn.primary{background:var(--rose-deep);color:var(--white);border-color:var(--rose-deep)}
+.ri-btn.danger{color:var(--red)}
+
+/* expense modal */
+.exp-modal-bg{position:absolute;inset:0;background:rgba(74,63,60,0.3);z-index:400;display:none;align-items:flex-end}
+.exp-modal-bg.show{display:flex}
+
+/* manage tags modal */
+.mtag-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:0.5px solid var(--border-light)}
+.mtag-row:last-child{border-bottom:none}
+.mtag-info{display:flex;align-items:center;gap:8px}
+.mtag-name{font-size:14px;color:var(--text)}
+.mtag-cat{font-size:11px;color:var(--sub);padding:2px 7px;border-radius:20px;background:var(--warm)}
+.mtag-del{font-size:14px;color:#C5B8B4;cursor:pointer;padding:4px}
+.mtag-del:hover{color:var(--red)}
+
+/* manage tags modal bg */
+.manage-modal-bg{position:absolute;inset:0;background:rgba(74,63,60,0.3);z-index:400;display:none;align-items:flex-end}
+.manage-modal-bg.show{display:flex}
+
+/* payment confirm modal */
+.pay-confirm-bg{position:absolute;inset:0;background:rgba(74,63,60,0.3);z-index:500;display:none;align-items:center;justify-content:center;padding:20px}
+.pay-confirm-bg.show{display:flex}
+.pay-confirm-box{background:var(--white);border-radius:16px;width:100%;padding:24px 20px;box-shadow:0 8px 32px rgba(0,0,0,0.12)}
+.pay-confirm-title{font-size:16px;font-weight:500;color:var(--text);margin-bottom:6px}
+.pay-confirm-sub{font-size:13px;font-weight:400;color:var(--sub);margin-bottom:20px;line-height:1.5}
+.pay-opt{border:1.5px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:10px;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:12px}
+.pay-opt:hover{border-color:var(--rose);background:var(--rose-bg)}
+.pay-opt.selected{border-color:var(--rose);background:var(--rose-bg)}
+.pay-opt-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.pay-opt-icon.deposit{background:var(--amber-bg);color:var(--amber)}
+.pay-opt-icon.paid{background:#DCFCE7;color:#166534}
+.pay-opt-title{font-size:14px;font-weight:500;color:var(--text)}
+.pay-opt-sub{font-size:12px;font-weight:400;color:var(--sub);margin-top:2px}
+.pay-confirm-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:16px}
+
+/* edit order sheet */
+.edit-sheet-bg{position:absolute;inset:0;background:rgba(74,63,60,0.3);z-index:450;display:none;align-items:flex-end}
+.edit-sheet-bg.show{display:flex}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ============================================================
+       PAGE 1: DASHBOARD
+       ============================================================ -->
+  <div class="page active" id="page-dashboard">
+    <div class="topbar">
+      <div class="topbar-row">
+        <div>
+          <div class="topbar-logo">Sian</div>
+          <div class="topbar-sub">嫻 美 學</div>
+        </div>
+        <div class="topbar-actions">
+          <div class="icon-btn" onclick="openReviewSheet()">
+            <i class="ti ti-bell"></i>
+            <div class="notif-dot"></div>
+          </div>
+          <div class="icon-btn av">嫻</div>
+        </div>
+      </div>
+    </div>
+    <div class="page-scroll">
+      <div class="dash-date" id="dashDate"></div>
+      <div class="review-banner" onclick="openReviewSheet()">
+        <div class="review-banner-left">
+          <div class="review-banner-icon"><i class="ti ti-forms"></i></div>
+          <div>
+            <div class="review-banner-title">待審核預約表單 <span class="review-count" id="reviewCount">2</span></div>
+            <div class="review-banner-sub">有新客戶填寫了預約表單，請確認後建立訂單</div>
+          </div>
+        </div>
+        <i class="ti ti-chevron-right" style="color:var(--sub);font-size:16px"></i>
+      </div>
+      <div class="stats-grid">
+        <div class="stat"><div class="stat-l">本月訂單</div><div class="stat-v">8</div><div class="stat-s"><span class="dot" style="background:var(--sage)"></span>較上月 +2</div></div>
+        <div class="stat"><div class="stat-l">待審核</div><div class="stat-v warn">2</div><div class="stat-s"><span class="dot" style="background:var(--unpaid-dot)"></span>需要處理</div></div>
+        <div class="stat"><div class="stat-l">本月收入</div><div class="stat-v">62k</div><div class="stat-s"><span class="dot" style="background:var(--sage)"></span>達成 62%</div></div>
+        <div class="stat"><div class="stat-l">待收尾款</div><div class="stat-v warn">2</div><div class="stat-s"><span class="dot" style="background:var(--unpaid-dot)"></span>需催收</div></div>
+      </div>
+      <div class="dash-section">
+        <div class="sec-head"><div class="sec-title">今日行程</div><div class="sec-link" onclick="navTo('calendar')">查看日曆 →</div></div>
+        <div class="panel">
+          <div id="dashTodayList"></div>
+        </div>
+        <div class="sec-head"><div class="sec-title">最近訂單</div><div class="sec-link" onclick="navTo('calendar')">全部 →</div></div>
+        <div class="panel">
+          <div class="order-row"><div class="order-av new">新</div><div class="order-info"><div class="order-name">黃雅琳（待審核）</div><div class="order-meta">12/14 · 新娘整體造型 · 台中金典</div></div><span class="badge badge-review">待審核</span></div>
+          <div class="order-row"><div class="order-av">張</div><div class="order-info"><div class="order-name">張美玲</div><div class="order-meta">11/02 · 新娘整體造型 · 台中裕元</div></div><span class="badge badge-confirmed">已確認</span></div>
+          <div class="order-row"><div class="order-av">劉</div><div class="order-info"><div class="order-name">劉宜蓁</div><div class="order-meta">11/15 · 精緻韓系霧眉 · 工作室</div></div><span class="badge badge-confirmed">已確認</span></div>
+        </div>
+        <div class="sec-head"><div class="sec-title">本月收款進度</div><div class="sec-link" onclick="navTo('payment')">收款紀錄 →</div></div>
+        <div class="panel">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
+            <span style="font-family:var(--font-en);font-weight:300;font-size:24px;color:var(--rose-deep)">NT$ 62,000</span>
+            <span style="font-size:12px;color:var(--sub)">目標 NT$ 100,000</span>
+          </div>
+          <div class="bar-bg"><div class="bar-fill" style="width:62%"></div></div>
+          <div class="bar-leg"><span>已達成 62%</span><span>尚差 NT$ 38,000</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       PAGE 2: CALENDAR
+       ============================================================ -->
+  <div class="page" id="page-calendar">
+    <div class="cal-topbar">
+      <div class="topbar-row">
+        <div class="topbar-title">日曆排程</div>
+        <button onclick="openAddOrder()" style="background:var(--rose-deep);color:var(--white);border:none;border-radius:8px;padding:7px 14px;font-size:13px;font-weight:500;font-family:var(--font-main);cursor:pointer;display:flex;align-items:center;gap:5px"><i class="ti ti-plus"></i>新增</button>
+      </div>
+      <div class="cal-month-nav" style="margin-top:10px">
+        <div class="mnav-btn" onclick="calChangeMonth(-1)">‹</div>
+        <div class="mnav-label" id="calMonthLabel"></div>
+        <div class="mnav-btn" onclick="calChangeMonth(1)">›</div>
+      </div>
+    </div>
+    <div class="pay-legend">
+      <div class="leg-item"><div class="leg-dot" style="background:var(--unpaid-dot)"></div>未付款</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--deposit-dot)"></div>已付訂金</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--paid-dot)"></div>已付清</div>
+    </div>
+    <div class="cal-grid-wrap">
+      <div class="cal-header">
+        <div class="cal-dname">日</div><div class="cal-dname">一</div><div class="cal-dname">二</div>
+        <div class="cal-dname">三</div><div class="cal-dname">四</div><div class="cal-dname">五</div><div class="cal-dname">六</div>
+      </div>
+      <div class="cal-grid" id="calGrid"></div>
+    </div>
+    <div class="day-detail" id="dayDetail"></div>
+  </div>
+
+  <!-- ============================================================
+       PAGE 3: PAYMENT
+       ============================================================ -->
+  <div class="page" id="page-payment">
+    <div class="pay-topbar">
+      <div class="topbar-row">
+        <div class="topbar-title">收款總覽</div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <div class="mnav-btn" onclick="payChangeMonth(-1)">‹</div>
+          <span id="payMonthLabel" style="font-size:13px;font-weight:400;color:var(--sub)"></span>
+          <div class="mnav-btn" onclick="payChangeMonth(1)">›</div>
+        </div>
+      </div>
+    </div>
+    <div class="pay-tab-row">
+      <div class="pay-tab on" onclick="setPayTab(this,'income')">收入</div>
+      <div class="pay-tab" onclick="setPayTab(this,'expense')">支出</div>
+    </div>
+    <div class="pay-filter-tabs" id="payFilterTabs">
+      <div class="ftab on" onclick="setPayFilter(this,'all')">全部</div>
+      <div class="ftab" onclick="setPayFilter(this,'unpaid')">未付款</div>
+      <div class="ftab" onclick="setPayFilter(this,'deposit')">已付訂金</div>
+      <div class="ftab" onclick="setPayFilter(this,'paid')">已付清</div>
+    </div>
+    <div class="page-scroll" style="padding-bottom:calc(var(--nav-h) + 16px)">
+      <div class="sum-grid" id="paySummary"></div>
+      <div style="padding:12px 16px 0" id="payList"></div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       PAGE 4: CLIENTS
+       ============================================================ -->
+  <div class="page" id="page-clients">
+    <div class="topbar">
+      <div class="topbar-row" style="margin-bottom:10px">
+        <div class="topbar-title">客戶管理</div>
+        <div style="display:flex;gap:8px">
+          <div class="icon-btn" onclick="toggleClientView()" id="clientViewBtn" title="切換標籤搜尋"><i class="ti ti-tag"></i></div>
+        </div>
+      </div>
+      <div class="search-wrap">
+        <i class="ti ti-search search-icon"></i>
+        <input class="search-input" type="text" placeholder="搜尋客戶姓名…" oninput="filterClients(this.value)" id="clientSearchInput">
+      </div>
+    </div>
+    <div class="pay-filter-tabs" id="clientFilterTabs">
+      <div class="ftab on" onclick="setClientFilter(this,'all')">全部</div>
+      <div class="ftab" onclick="setClientFilter(this,'repeat')">回頭客</div>
+      <div class="ftab" onclick="setClientFilter(this,'allergy')">過敏注意</div>
+      <div class="ftab" onclick="setClientFilter(this,'sensitive')">敏感肌</div>
+    </div>
+    <div class="page-scroll" id="clientContent"></div>
+  </div>
+
+  <!-- ============================================================
+       BOTTOM NAV
+       ============================================================ -->
+  <div class="bottom-nav">
+    <div class="nav-item active" id="nav-dashboard" onclick="navTo('dashboard')"><i class="ti ti-layout-dashboard"></i><span>首頁</span></div>
+    <div class="nav-item" id="nav-calendar" onclick="navTo('calendar')"><i class="ti ti-calendar"></i><span>排程</span></div>
+    <div class="nav-fab-wrap"><div class="nav-fab" onclick="openAddOrder()"><i class="ti ti-plus"></i></div></div>
+    <div class="nav-item" id="nav-payment" onclick="navTo('payment')"><i class="ti ti-receipt"></i><span>收款</span></div>
+    <div class="nav-item" id="nav-clients" onclick="navTo('clients')"><i class="ti ti-users"></i><span>客戶</span></div>
+  </div>
+
+  <!-- ============================================================
+       REVIEW SHEET
+       ============================================================ -->
+  <div class="sheet-bg" id="reviewSheet" onclick="bgClose(event,'reviewSheet')">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <div class="sheet-title">待審核預約表單 <span style="font-size:13px;color:var(--red);font-weight:400">（2 筆）</span></div>
+        <span class="sheet-close" onclick="closeSheet('reviewSheet')"><i class="ti ti-x"></i></span>
+      </div>
+      <div id="reviewList">
+        <div class="review-item" id="ri-1">
+          <div class="ri-top"><div><div class="ri-name">黃雅琳</div><div class="ri-svc">新娘整體造型</div></div><div class="ri-time">剛剛</div></div>
+          <div class="ri-metas">
+            <div class="ri-meta"><i class="ti ti-calendar" style="font-size:12px"></i>2025-12-14</div>
+            <div class="ri-meta"><i class="ti ti-clock" style="font-size:12px"></i>05:30</div>
+            <div class="ri-meta"><i class="ti ti-map-pin" style="font-size:12px"></i>台中金典酒店</div>
+            <div class="ri-meta"><i class="ti ti-phone" style="font-size:12px"></i>0912-345-678</div>
+          </div>
+          <div class="ri-note">膚質：敏感肌・過敏：含酒精・風格：韓系光澤感</div>
+          <div class="ri-actions">
+            <div class="ri-btn danger" onclick="rejectReview('ri-1')"><i class="ti ti-x"></i> 婉拒</div>
+            <div class="ri-btn primary" onclick="confirmReview('ri-1','黃雅琳')"><i class="ti ti-check"></i> 建立訂單</div>
+          </div>
+        </div>
+        <div class="review-item" id="ri-2">
+          <div class="ri-top"><div><div class="ri-name">陳怡君</div><div class="ri-svc">精緻韓系霧眉設計</div></div><div class="ri-time">2 小時前</div></div>
+          <div class="ri-metas">
+            <div class="ri-meta"><i class="ti ti-calendar" style="font-size:12px"></i>2025-12-20</div>
+            <div class="ri-meta"><i class="ti ti-clock" style="font-size:12px"></i>13:00</div>
+            <div class="ri-meta"><i class="ti ti-map-pin" style="font-size:12px"></i>工作室</div>
+            <div class="ri-meta"><i class="ti ti-phone" style="font-size:12px"></i>0923-456-789</div>
+          </div>
+          <div class="ri-note">膚質：油性・風格：自然清透感</div>
+          <div class="ri-actions">
+            <div class="ri-btn danger" onclick="rejectReview('ri-2')"><i class="ti ti-x"></i> 婉拒</div>
+            <div class="ri-btn primary" onclick="confirmReview('ri-2','陳怡君')"><i class="ti ti-check"></i> 建立訂單</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- calendar order detail sheet -->
+  <div class="sheet-bg" id="calDetailSheet" onclick="bgClose(event,'calDetailSheet')">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <div class="sheet-title" id="calDetailTitle">訂單細節</div>
+        <span class="sheet-close" onclick="closeSheet('calDetailSheet')"><i class="ti ti-x"></i></span>
+      </div>
+      <div class="sheet-body" id="calDetailBody"></div>
+      <div class="sheet-actions">
+        <div class="sact" onclick="openEditSheet(calDetailTaskId)"><i class="ti ti-edit"></i> 編輯</div>
+        <div class="sact primary" onclick="openPayConfirm(calDetailTaskId,'sheet')"><i class="ti ti-check"></i> 確認收款</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- client detail sheet -->
+  <div class="sheet-bg" id="clientDetailSheet" onclick="bgClose(event,'clientDetailSheet')">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div id="clientDetailContent"></div>
+    </div>
+  </div>
+
+  <!-- expense modal -->
+  <div class="exp-modal-bg" id="expModal" onclick="bgClose(event,'expModal')">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <div class="sheet-title">新增支出</div>
+        <span class="sheet-close" onclick="closeSheet('expModal')"><i class="ti ti-x"></i></span>
+      </div>
+      <div class="sheet-body">
+        <div class="field">
+          <label class="fl">支出類型</label>
+          <div class="chips" style="margin-bottom:0">
+            <div class="chip on" id="expTypeOrder" onclick="setExpType('order')">訂單支出</div>
+            <div class="chip" id="expTypeOp" onclick="setExpType('operation')">營運支出</div>
+          </div>
+          <div id="expTypeHint" style="font-size:11px;color:var(--sub);margin-top:6px">當天執行訂單的花費，計入該訂單利潤</div>
+        </div>
+        <div class="field" id="expOrderField" style="display:block">
+          <label class="fl">對應訂單</label>
+          <select id="expOrderId"><option value="">不指定</option></select>
+        </div>
+        <div class="field"><label class="fl">支出項目</label><input type="text" id="expName" placeholder="例：飾品採購"></div>
+        <div class="field"><label class="fl">分類</label>
+          <select id="expCat"><option>飾品</option><option>化妝品 / 保養品</option><option>交通費</option><option>PT 費用</option><option>店租</option><option>進修費用</option><option>其他</option></select>
+        </div>
+        <div class="drow">
+          <div class="field"><label class="fl">金額（NT$）</label><input type="number" id="expAmt" placeholder="0"></div>
+          <div class="field"><label class="fl">日期</label><input type="date" id="expDate"></div>
+        </div>
+        <div class="sheet-actions" style="border:none;padding:0;margin:0">
+          <div class="sact" onclick="closeSheet('expModal')">取消</div>
+          <div class="sact primary" onclick="addExpense()">新增支出</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- manage tags modal -->
+  <div class="manage-modal-bg" id="manageTagsModal" onclick="bgClose(event,'manageTagsModal')">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <div class="sheet-title">管理標籤</div>
+        <span class="sheet-close" onclick="closeSheet('manageTagsModal')"><i class="ti ti-x"></i></span>
+      </div>
+      <div class="sheet-body">
+        <div class="field">
+          <label class="fl">新增自訂標籤</label>
+          <div class="drow" style="margin-bottom:8px">
+            <input type="text" id="newTagName" placeholder="標籤名稱">
+            <select id="newTagCat"><option>膚質</option><option>服務類型</option><option>客戶特性</option><option>婚禮類型</option><option>自訂</option></select>
+          </div>
+          <div class="sact primary" onclick="addTag()" style="display:block;text-align:center;cursor:pointer;border-radius:9px;padding:10px;font-size:13px;font-weight:500">新增標籤</div>
+        </div>
+        <label class="fl">所有標籤</label>
+        <div id="allTagsList"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       ADD ORDER OVERLAY
+       ============================================================ -->
+  <div id="addOrderOverlay">
+    <div class="add-topbar">
+      <div class="topbar-title">新增訂單</div>
+      <div onclick="closeAddOrder()" style="display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;color:var(--sub)">
+        <div class="icon-btn" style="pointer-events:none"><i class="ti ti-x"></i></div>
+        <span style="font-size:10px;font-weight:400;letter-spacing:0.04em">返回</span>
+      </div>
+    </div>
+    <div class="add-steps" id="addStepsBar"></div>
+    <div class="add-content" id="addFormContent"></div>
+    <div class="add-success" id="addSuccess">
+      <div class="add-success-icon"><i class="ti ti-check"></i></div>
+      <div class="add-success-en">Order Confirmed</div>
+      <div class="add-success-zh">訂單已建立並加入排程<br>收款狀態：未付款</div>
+      <button class="add-success-btn" onclick="closeAddOrder()">返回</button>
+    </div>
+    <div class="add-cta-bar" id="addCtaBar">
+      <div class="add-back" id="addBackBtn" onclick="addPrevStep()" style="display:none">上一步</div>
+      <div class="add-next" id="addNextBtn" onclick="addNextStep()">下一步</div>
+    </div>
+  </div>
+
+  <!-- PAY CONFIRM MODAL -->
+  <div class="pay-confirm-bg" id="payConfirmModal">
+    <div class="pay-confirm-box">
+      <div class="pay-confirm-title" id="payConfirmTitle">確認收款</div>
+      <div class="pay-confirm-sub" id="payConfirmSub">請選擇收款狀況：</div>
+      <div class="pay-opt" id="payOptDeposit" onclick="selectPayOpt('deposit')">
+        <div class="pay-opt-icon deposit"><i class="ti ti-coins"></i></div>
+        <div>
+          <div class="pay-opt-title">已收到訂金</div>
+          <div class="pay-opt-sub">部分付款，尾款待收</div>
+        </div>
+      </div>
+      <div class="pay-opt" id="payOptPaid" onclick="selectPayOpt('paid')">
+        <div class="pay-opt-icon paid"><i class="ti ti-circle-check"></i></div>
+        <div>
+          <div class="pay-opt-title">已收到全款</div>
+          <div class="pay-opt-sub">款項全數結清</div>
+        </div>
+      </div>
+      <div class="pay-confirm-btns">
+        <div class="sact" onclick="closePayConfirm()">取消</div>
+        <div class="sact primary" id="payConfirmBtn" onclick="applyPayConfirm()" style="opacity:0.4;pointer-events:none">確認</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EDIT ORDER SHEET -->
+  <div class="edit-sheet-bg" id="editSheet" onclick="bgClose(event,'editSheet')">
+    <div class="sheet" style="max-height:92%">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <div class="sheet-title" id="editSheetTitle">編輯訂單</div>
+        <span class="sheet-close" onclick="closeSheet('editSheet')"><i class="ti ti-x"></i></span>
+      </div>
+      <div class="sheet-body" id="editSheetBody"></div>
+      <div style="padding:14px 20px 0;border-top:0.5px solid var(--line);margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="sact" onclick="closeSheet('editSheet')">取消</div>
+        <div class="sact primary" onclick="saveEditOrder()">儲存</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- #app -->
+
+<script>
+// ============================================================
+// DATA
+// ============================================================
+const PAY_LABEL={unpaid:'未付款',deposit:'已付訂金',paid:'已付清'};
+const SERVICES=['新娘整體造型','彩妝服務','精緻韓系霧眉設計','婚前試妝'];
+const SKINS=['乾性','油性','混合性','敏感肌','痘痘肌','過敏史'];
+const STYLES=['自然清透感','韓系光澤感','歐美立體感','日系清甜感','復古優雅感'];
+
+let orders=[
+  {id:1,name:'林怡君',service:'新娘整體造型',date:'2025-10-18',time:'05:30',loc:'晶華酒店 B2',people:'僅新娘',skin:['敏感肌'],allergy:'含酒精',style:'韓系光澤感',note:'避免含酒精產品',pay:'deposit',deposit_amt:5000,final_amt:18000,tags:['敏感肌','新娘造型','飯店婚禮'],status:'confirmed'},
+  {id:2,name:'陳雅婷',service:'婚前試妝',date:'2025-10-18',time:'10:00',loc:'工作室',people:'僅新娘',skin:['油性'],allergy:'',style:'韓系光澤感',note:'帶參考圖',pay:'paid',deposit_amt:3000,final_amt:3000,tags:['霧眉熟客','油性肌'],status:'done'},
+  {id:3,name:'王小芸',service:'彩妝服務',date:'2025-10-22',time:'14:30',loc:'寫真攝影棚',people:'僅新娘',skin:['混合性'],allergy:'',style:'自然清透感',note:'',pay:'paid',deposit_amt:4500,final_amt:4500,tags:['寫真彩妝'],status:'done'},
+  {id:4,name:'張美玲',service:'新娘整體造型',date:'2025-11-02',time:'05:00',loc:'台中裕元花園',people:'新娘＋媽媽',skin:['痘痘肌'],allergy:'防腐劑',style:'自然清透感',note:'遮瑕需求高',pay:'unpaid',deposit_amt:0,final_amt:20000,tags:['痘痘肌','新娘造型','戶外婚禮'],status:'confirmed'},
+  {id:5,name:'劉宜蓁',service:'精緻韓系霧眉設計',date:'2025-11-15',time:'13:00',loc:'工作室',people:'僅新娘',skin:['油性'],allergy:'',style:'韓系光澤感',note:'',pay:'deposit',deposit_amt:2000,final_amt:6000,tags:['霧眉設計','霧眉熟客'],status:'confirmed'},
+  {id:6,name:'吳芷瑄',service:'婚前試妝',date:'2025-11-26',time:'11:00',loc:'工作室',people:'僅新娘',skin:['痘痘肌'],allergy:'',style:'自然清透感',note:'痘痘肌，需遮瑕',pay:'unpaid',deposit_amt:0,final_amt:3500,tags:['痘痘肌','需遮瑕'],status:'confirmed'},
+  {id:7,name:'蔡佳穎',service:'新娘整體造型',date:'2025-09-14',time:'05:30',loc:'台南晶英酒店',people:'新娘＋伴娘',skin:['乾性'],allergy:'',style:'復古優雅感',note:'',pay:'paid',deposit_amt:8000,final_amt:22000,tags:['新娘造型','VIP','素材已存'],status:'done'},
+];
+let nextOrderId=8;
+
+let expenses=[
+  {id:1,name:'韓系飾品採購',cat:'飾品',amt:2800,date:'2025-10-10',type:'order',orderId:1},
+  {id:2,name:'底妝補貨',cat:'化妝品 / 保養品',amt:4200,date:'2025-10-15',type:'operation'},
+  {id:3,name:'PT 費用 10月',cat:'PT 費用',amt:6000,date:'2025-10-01',type:'operation'},
+];
+let nextExpId=4;
+
+let tags=[
+  {id:1,name:'敏感肌',cat:'膚質',preset:true},{id:2,name:'痘痘肌',cat:'膚質',preset:true},
+  {id:3,name:'油性肌',cat:'膚質',preset:true},{id:4,name:'乾性肌',cat:'膚質',preset:true},
+  {id:5,name:'霧眉熟客',cat:'客戶特性',preset:false},{id:6,name:'VIP',cat:'客戶特性',preset:false},
+  {id:7,name:'新娘造型',cat:'服務類型',preset:true},{id:8,name:'寫真彩妝',cat:'服務類型',preset:true},
+  {id:9,name:'霧眉設計',cat:'服務類型',preset:true},{id:10,name:'婚前試妝',cat:'服務類型',preset:true},
+  {id:11,name:'戶外婚禮',cat:'婚禮類型',preset:false},{id:12,name:'飯店婚禮',cat:'婚禮類型',preset:false},
+  {id:13,name:'需遮瑕',cat:'自訂',preset:false},{id:14,name:'素材已存',cat:'自訂',preset:false},
+];
+let nextTagId=15;
+
+const clients=[
+  {id:1,name:'林怡君',phone:'0912-345-678',skin:['敏感肌'],allergy:'含酒精產品',style:'韓系光澤感',note:'習慣早到，請提前準備',repeat:false,orders:[{date:'2025-10-18',service:'新娘整體造型',loc:'晶華酒店 B2'}]},
+  {id:2,name:'陳雅婷',phone:'0923-456-789',skin:['油性'],allergy:'',style:'韓系光澤感',note:'',repeat:true,orders:[{date:'2025-10-18',service:'婚前試妝',loc:'工作室'},{date:'2024-08-10',service:'彩妝服務',loc:'寫真棚'}]},
+  {id:3,name:'王小芸',phone:'0934-567-890',skin:['混合性'],allergy:'',style:'自然清透感',note:'',repeat:false,orders:[{date:'2025-10-22',service:'彩妝服務',loc:'寫真攝影棚'}]},
+  {id:4,name:'張美玲',phone:'0945-678-901',skin:['痘痘肌','敏感肌'],allergy:'防腐劑',style:'自然清透感',note:'遮瑕需求高',repeat:false,orders:[{date:'2025-11-02',service:'新娘整體造型',loc:'台中裕元花園'}]},
+  {id:5,name:'蔡佳穎',phone:'0956-789-012',skin:['乾性'],allergy:'',style:'復古優雅感',note:'',repeat:true,orders:[{date:'2025-09-14',service:'新娘整體造型',loc:'台南晶英酒店'},{date:'2024-05-20',service:'婚前試妝',loc:'工作室'}]},
+  {id:6,name:'劉宜蓁',phone:'0967-890-123',skin:['油性'],allergy:'',style:'韓系光澤感',note:'',repeat:false,orders:[{date:'2025-11-15',service:'精緻韓系霧眉設計',loc:'工作室'}]},
+];
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function navTo(page){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const pageEl=document.getElementById('page-'+page);
+  const navEl=document.getElementById('nav-'+page);
+  if(pageEl)pageEl.classList.add('active');
+  if(navEl)navEl.classList.add('active');
+  // close any open overlays
+  document.querySelectorAll('.sheet-bg.show,.exp-modal-bg.show,.manage-modal-bg.show').forEach(el=>el.classList.remove('show'));
+  if(page==='dashboard')renderDashToday();
+  if(page==='calendar')renderCalendar();
+  if(page==='payment')renderPayment();
+  if(page==='clients')renderClients();
+  // scroll to top
+  const scroll=pageEl?pageEl.querySelector('.page-scroll'):null;
+  if(scroll)scroll.scrollTop=0;
+}
+
+// ============================================================
+// SHEETS
+// ============================================================
+function openReviewSheet(){document.getElementById('reviewSheet').classList.add('show');}
+function closeSheet(id){document.getElementById(id).classList.remove('show');}
+function bgClose(e,id){if(e.target===document.getElementById(id))closeSheet(id);}
+
+// Store review items data for pre-filling
+const reviewData={
+  'ri-1':{clientName:'黃雅琳',phone:'0912-345-678',service:'新娘整體造型',date:'2025-12-14',time:'05:30',loc:'台中金典酒店',people:'僅新娘',skin:['敏感肌'],allergy:'含酒精',style:'韓系光澤感',note:''},
+  'ri-2':{clientName:'陳怡君',phone:'0923-456-789',service:'精緻韓系霧眉設計',date:'2025-12-20',time:'13:00',loc:'工作室',people:'僅新娘',skin:['油性'],allergy:'',style:'自然清透感',note:''},
+};
+
+function confirmReview(id,name){
+  // close review sheet first
+  closeSheet('reviewSheet');
+  // pre-fill addOrder form with review data
+  const data=reviewData[id];
+  if(data){
+    prevPage='dashboard';
+    Object.assign(addForm, data);
+    addForm.isExisting=false;
+    addForm.tags=[];
+    addForm.total='';
+    addForm.deposit='';
+  }
+  // open add order overlay - start at step 1 but data is pre-filled
+  document.getElementById('addOrderOverlay').classList.add('show');
+  document.getElementById('addSuccess').style.display='none';
+  document.getElementById('addFormContent').style.display='block';
+  document.getElementById('addCtaBar').style.display='flex';
+  document.getElementById('addStepsBar').style.display='flex';
+  addStep=1;
+  renderAddSteps();
+  renderAddForm();
+  // show a notice that data is pre-filled
+  setTimeout(()=>{
+    const content=document.getElementById('addFormContent');
+    const notice=document.createElement('div');
+    notice.style.cssText='background:#DCFCE7;border:0.5px solid #22C55E;border-radius:9px;padding:10px 14px;font-size:12px;font-weight:500;color:#166534;margin-bottom:14px;display:flex;align-items:center;gap:7px';
+    notice.innerHTML='<i class="ti ti-check-circle"></i>已帶入預約表單資料，請確認後填寫金額';
+    content.insertBefore(notice, content.firstChild);
+  }, 50);
+}
+function rejectReview(id){
+  const el=document.getElementById(id);
+  const name=el.querySelector('.ri-name').textContent;
+  el.style.opacity='0.5';el.style.pointerEvents='none';
+  el.querySelector('.ri-actions').innerHTML=`<div style="grid-column:span 2;text-align:center;font-size:13px;color:var(--sub);padding:8px;background:var(--warm);border-radius:9px">${name} 的申請已婉拒</div>`;
+}
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+(function initDash(){
+  const d=new Date();
+  const wd=['日','一','二','三','四','五','六'];
+  document.getElementById('dashDate').textContent=`${d.getFullYear()} 年 ${d.getMonth()+1} 月 ${d.getDate()} 日（${wd[d.getDay()]}）`;
+})();
+
+function renderDashToday(){
+  const today=new Date();
+  const ds=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+  // use demo date for prototype
+  const demoDs='2025-10-18';
+  const todayOrders=orders.filter(o=>o.date===demoDs).sort((a,b)=>a.time.localeCompare(b.time));
+  const COLOR={'新娘整體造型':'','彩妝服務':'g','精緻韓系霧眉設計':'amber','婚前試妝':'m'};
+  const el=document.getElementById('dashTodayList');
+  if(!el)return;
+  if(!todayOrders.length){
+    el.innerHTML='<div style="text-align:center;padding:16px 0;color:var(--sub);font-size:13px">今天沒有排程</div>';
+    return;
+  }
+  el.innerHTML=todayOrders.map(o=>`
+    <div class="sched-item" onclick="dashOpenDetail(${o.id})" style="cursor:pointer">
+      <div class="sched-time">${o.time}</div>
+      <div class="sched-card ${COLOR[o.service]||''}">
+        <div class="sched-name">${o.name} · ${o.service}</div>
+        <div class="sched-detail">${o.loc}${o.skin&&o.skin.length?' · '+o.skin.join('/'):''}${o.allergy?' ⚠️ '+o.allergy:''}</div>
+        ${o.status==='done'?'<div style="font-size:10px;color:var(--sage);margin-top:3px;font-weight:500">✓ 已完成</div>':''}
+      </div>
+    </div>`).join('');
+}
+
+function dashOpenDetail(id){
+  // navigate to calendar, select that date, open detail
+  navTo('calendar');
+  const t=orders.find(x=>x.id===id);
+  if(t){
+    calDate=new Date(t.date);
+    calSelDate=t.date;
+    renderCalendar();
+    renderDayDetail(t.date);
+    setTimeout(()=>openCalDetail(id),200);
+  }
+}
+
+// ============================================================
+// CALENDAR
+// ============================================================
+let calDate=new Date(2025,9,1);
+let calSelDate='2025-10-18';
+let calDetailTaskId=null;
+
+function calChangeMonth(d){calDate.setMonth(calDate.getMonth()+d);calSelDate=null;document.getElementById('dayDetail').innerHTML='';renderCalendar();}
+
+function renderCalendar(){
+  const y=calDate.getFullYear(),m=calDate.getMonth();
+  document.getElementById('calMonthLabel').textContent=`${y} 年 ${m+1} 月`;
+  const grid=document.getElementById('calGrid');grid.innerHTML='';
+  const first=new Date(y,m,1).getDay(),dim=new Date(y,m+1,0).getDate(),prev=new Date(y,m,0).getDate();
+  const today=new Date();
+  const total=Math.ceil((first+dim)/7)*7;
+  for(let i=0;i<total;i++){
+    let day,mine=true;
+    if(i<first){day=prev-first+i+1;mine=false;}
+    else if(i>=first+dim){day=i-first-dim+1;mine=false;}
+    else day=i-first+1;
+    const cell=document.createElement('div');
+    cell.className='day-cell'+(mine?'':' other');
+    const ds=mine?`${y}-${String(m+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`:'';
+    if(calSelDate&&ds===calSelDate)cell.classList.add('selected');
+    const isToday=mine&&y===today.getFullYear()&&m===today.getMonth()&&day===today.getDate();
+    const numEl=document.createElement('div');numEl.className='day-num';
+    if(isToday){const s=document.createElement('span');s.className='today-num';s.textContent=day;numEl.appendChild(s);}
+    else numEl.textContent=day;
+    cell.appendChild(numEl);
+    if(mine){
+      const dt=orders.filter(o=>o.date===ds);
+      if(dt.length){const dr=document.createElement('div');dr.className='dot-row';dt.slice(0,3).forEach(t=>{const d=document.createElement('div');d.className=`cdot ${t.pay}`;dr.appendChild(d);});cell.appendChild(dr);}
+      cell.addEventListener('click',()=>{calSelDate=ds;renderCalendar();renderDayDetail(ds);});
+    }
+    grid.appendChild(cell);
+  }
+  if(calSelDate)renderDayDetail(calSelDate);
+}
+
+function renderDayDetail(ds){
+  const detail=document.getElementById('dayDetail');
+  const d=new Date(ds);const wd=['日','一','二','三','四','五','六'];
+  const label=`${d.getMonth()+1} 月 ${d.getDate()} 日（${wd[d.getDay()]}）`;
+  const dt=orders.filter(o=>o.date===ds).sort((a,b)=>a.time.localeCompare(b.time));
+  if(!dt.length){detail.innerHTML=`<div class="detail-head">${label}</div><div class="empty-day"><i class="ti ti-calendar-off" style="font-size:28px;display:block;margin-bottom:8px;color:var(--line)"></i>這天沒有排程<br><span style="font-size:12px">點右上角新增訂單</span></div>`;return;}
+  detail.innerHTML=`<div class="detail-head">${label}・${dt.length} 筆</div>`+dt.map(t=>`
+    <div class="tcard ${t.pay}">
+      <div class="tcard-top"><div><div class="tcard-name">${t.name}</div><div class="tcard-svc">${t.service}</div></div><span class="badge badge-${t.pay}">${PAY_LABEL[t.pay]}</span></div>
+      <div class="tcard-meta">
+        <div class="tmeta"><i class="ti ti-clock" style="font-size:12px"></i>${t.time}</div>
+        <div class="tmeta"><i class="ti ti-map-pin" style="font-size:12px"></i>${t.loc}</div>
+        ${t.people?`<div class="tmeta"><i class="ti ti-users" style="font-size:12px"></i>${t.people}</div>`:''}
+      </div>
+      ${(t.skin&&t.skin.length)||t.note?`<div class="tcard-note">${[...(t.skin||[]),t.note].filter(Boolean).join('・')}</div>`:''}
+      <div class="tcard-actions">
+        <div class="tact" onclick="openCalDetail(${t.id})"><i class="ti ti-receipt" style="margin-right:3px"></i>訂單細節</div>
+        ${t.status==='done'
+          ?'<div class="tact" style="color:var(--sub);pointer-events:none"><i class="ti ti-checks" style="margin-right:3px"></i>已完成</div>'
+          :`<div class="tact pay-act" onclick="openPayConfirm(${t.id},'card')"><i class="ti ti-check" style="margin-right:3px"></i>確認收款</div>`
+        }
+      </div>
+      ${t.status!=='done'?`<div style="margin-top:6px"><div class="tact" style="width:100%;text-align:center;background:rgba(255,255,255,0.5);color:var(--sub);font-size:11px;border:0.5px dashed var(--line)" onclick="markOrderDone(${t.id})"><i class="ti ti-circle-check" style="margin-right:3px"></i>標記服務已完成</div></div>`:''}
+    </div>`).join('');
+}
+
+function openCalDetail(id){
+  calDetailTaskId=id;
+  const t=orders.find(x=>x.id===id);if(!t)return;
+  document.getElementById('calDetailTitle').textContent=t.name+'・訂單細節';
+  const detRecv=t.pay==='paid'?t.final_amt:t.pay==='deposit'?t.deposit_amt:0;
+  const detPend=t.pay==='paid'?0:t.pay==='deposit'?t.final_amt-t.deposit_amt:t.final_amt;
+  document.getElementById('calDetailBody').innerHTML=`
+    <div class="srow"><span class="skey">服務</span><span class="sval">${t.service}</span></div>
+    <div class="srow"><span class="skey">日期</span><span class="sval">${t.date}</span></div>
+    <div class="srow"><span class="skey">時間</span><span class="sval">${t.time}</span></div>
+    <div class="srow"><span class="skey">地點</span><span class="sval">${t.loc}</span></div>
+    <div class="srow"><span class="skey">人數</span><span class="sval">${t.people}</span></div>
+    ${t.allergy?`<div class="srow"><span class="skey">過敏</span><span class="sval" style="color:var(--red)">${t.allergy}</span></div>`:''}
+    ${t.note?`<div class="srow"><span class="skey">備注</span><span class="sval">${t.note}</span></div>`:''}
+    <div style="height:1px;background:var(--line);margin:10px 0"></div>
+    <div style="font-size:11px;font-weight:500;letter-spacing:0.14em;color:var(--rose);margin-bottom:10px">收款狀況</div>
+    <div style="background:var(--warm);border-radius:8px;padding:10px 14px;margin-bottom:6px;display:flex;justify-content:space-between"><span style="font-size:13px;color:var(--sub)">訂金</span><span style="font-size:13px;font-weight:500;color:${t.pay==='unpaid'?'var(--red)':'var(--green)'}">${t.pay==='unpaid'?'未收取':'已收 NT$ '+t.deposit_amt.toLocaleString()}</span></div>
+    <div style="background:var(--warm);border-radius:8px;padding:10px 14px;margin-bottom:6px;display:flex;justify-content:space-between"><span style="font-size:13px;color:var(--sub)">尾款</span><span style="font-size:13px;font-weight:500;color:${t.pay==='paid'?'var(--green)':t.pay==='deposit'?'var(--amber)':'var(--sub)'}">  ${t.pay==='paid'?'已收清':t.pay==='deposit'?'待收 NT$ '+detPend.toLocaleString():'NT$ '+t.final_amt.toLocaleString()}</span></div>
+    <div style="background:var(--warm);border-radius:8px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;font-weight:500;color:var(--sub)">付款狀態</span><span class="badge badge-${t.pay}">${PAY_LABEL[t.pay]}</span></div>
+  `;
+  document.getElementById('calDetailSheet').classList.add('show');
+}
+
+function markPay(id){
+  const t=orders.find(x=>x.id===id);if(!t)return;
+  if(t.pay==='unpaid')t.pay='deposit';
+  else if(t.pay==='deposit')t.pay='paid';
+  if(calSelDate)renderDayDetail(calSelDate);
+  renderCalendar();
+}
+function markPaidFromSheet(){
+  if(calDetailTaskId)openPayConfirm(calDetailTaskId,'sheet');
+}
+
+// ============================================================
+// PAYMENT
+// ============================================================
+let payMonth={y:2025,m:9};
+let payTab='income';
+let payFilter='all';
+
+function payChangeMonth(d){payMonth.m+=d;if(payMonth.m>11){payMonth.m=0;payMonth.y++;}if(payMonth.m<0){payMonth.m=11;payMonth.y--;}document.getElementById('payMonthLabel').textContent=`${payMonth.y} 年 ${payMonth.m+1} 月`;renderPayment();}
+function setPayTab(el,t){document.querySelectorAll('.pay-tab').forEach(x=>x.classList.remove('on'));el.classList.add('on');payTab=t;document.getElementById('payFilterTabs').style.display=t==='income'?'flex':'none';renderPayment();}
+function setPayFilter(el,f){document.querySelectorAll('.pay-filter-tabs .ftab').forEach(x=>x.classList.remove('on'));el.classList.add('on');payFilter=f;renderPayment();}
+
+function getMonthOrders(){return orders.filter(o=>{const d=new Date(o.date);return d.getFullYear()===payMonth.y&&d.getMonth()===payMonth.m;});}
+function getMonthExpenses(){return expenses.filter(e=>{const d=new Date(e.date);return d.getFullYear()===payMonth.y&&d.getMonth()===payMonth.m;});}
+function calcRecv(o){return o.pay==='paid'?o.final_amt:o.pay==='deposit'?o.deposit_amt:0;}
+function calcPend(o){return o.pay==='paid'?0:o.pay==='deposit'?o.final_amt-o.deposit_amt:o.final_amt;}
+
+function renderPayment(){
+  document.getElementById('payMonthLabel').textContent=`${payMonth.y} 年 ${payMonth.m+1} 月`;
+  const mo=getMonthOrders(),me=getMonthExpenses();
+  const totalRecv=mo.reduce((s,o)=>s+calcRecv(o),0);
+  const totalPend=mo.reduce((s,o)=>s+calcPend(o),0);
+  const totalExp=me.reduce((s,e)=>s+e.amt,0);
+  const totalOrderExp=me.filter(e=>e.type==='order').reduce((s,e)=>s+e.amt,0);
+  const totalOpExp=me.filter(e=>e.type!=='order').reduce((s,e)=>s+e.amt,0);
+  const net=totalRecv-totalExp;
+  const goal=100000,pct=Math.min(Math.round(totalRecv/goal*100),100);
+  document.getElementById('paySummary').innerHTML=`
+    <div class="sum-card"><div class="sum-l">本月收入</div><div class="sum-v">$${totalRecv.toLocaleString()}</div><div class="stat-s"><span class="dot" style="background:var(--sage)"></span>${mo.filter(o=>o.pay==='paid').length} 筆已付清</div></div>
+    <div class="sum-card expense-card"><div class="sum-l">本月支出</div><div class="sum-v red">$${totalExp.toLocaleString()}</div><div class="stat-s"><span class="dot" style="background:var(--unpaid-dot)"></span>訂單 $${totalOrderExp.toLocaleString()} · 營運 $${totalOpExp.toLocaleString()}</div></div>
+    <div class="sum-card net-card"><div class="sum-l">淨收入</div><div class="sum-v ${net>=0?'green':'red'}">$${net.toLocaleString()}</div><div class="stat-s"><span class="dot" style="background:${net>=0?'var(--sage)':'var(--unpaid-dot)'}"></span>${net>=0?'收支正常':'本月虧損'}</div></div>
+    <div class="sum-card"><div class="sum-l">待收金額</div><div class="sum-v" style="color:var(--rose)">$${totalPend.toLocaleString()}</div><div class="stat-s"><span class="dot" style="background:var(--deposit-dot)"></span>${mo.filter(o=>o.pay!=='paid').length} 筆待處理</div></div>
+    <div class="sum-card full" style="margin-top:0">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px"><span style="font-size:12px;font-weight:500;color:var(--sub)">本月目標進度</span><span style="font-size:12px;color:var(--sub)">目標 NT$ ${goal.toLocaleString()}</span></div>
+      <div class="bar-bg"><div class="bar-fill" style="width:${pct}%"></div></div>
+      <div class="bar-leg"><span>已達成 ${pct}%</span><span>尚差 $${(goal-totalRecv).toLocaleString()}</span></div>
+    </div>`;
+  const list=document.getElementById('payList');
+  if(payTab==='income'){
+    const filtered=mo.filter(o=>payFilter==='all'||o.pay===payFilter);
+    if(!filtered.length){list.innerHTML='<div style="text-align:center;padding:32px 0;color:var(--sub);font-size:13px">沒有符合的收款紀錄</div>';return;}
+    list.innerHTML=filtered.map(o=>{
+      const pend=calcPend(o),recv=calcRecv(o);
+      return`<div class="pcard">
+        <div class="pcard-accent ${o.pay}"></div>
+        <div class="pcard-inner">
+          <div class="pcard-top"><div><div class="pcard-name">${o.name}</div><div class="pcard-svc">${o.service}</div></div><span class="badge badge-${o.pay}">${PAY_LABEL[o.pay]}</span></div>
+          <div class="amt-row">
+            <div class="amt-box"><div class="amt-label">待收</div><div class="amt-val ${pend>0?'amber':'green'}">$${pend.toLocaleString()}</div></div>
+            <div class="amt-box"><div class="amt-label">已收</div><div class="amt-val ${recv>0?'green':'red'}">$${recv.toLocaleString()}</div></div>
+            <div class="amt-box"><div class="amt-label">總金額</div><div class="amt-val">$${o.final_amt.toLocaleString()}</div></div>
+          </div>
+          <div class="pcard-date"><i class="ti ti-calendar" style="font-size:12px"></i>${o.date}</div>
+          ${o.pay!=='paid'?`<div class="pcard-actions"><div class="pact-btn">提醒客戶</div><div class="pact-btn primary" onclick="openPayConfirm(${o.id},'list')">確認收款</div></div>`:''}
+        </div></div>`;
+    }).join('');
+  } else {
+    const orderExps=me.filter(e=>e.type==='order');
+    const opExps=me.filter(e=>e.type!=='order');
+    const totalOrderExp=orderExps.reduce((s,e)=>s+e.amt,0);
+    const totalOpExp=opExps.reduce((s,e)=>s+e.amt,0);
+    const expCard=(e)=>`<div class="ecard"><div class="ecard-accent" style="background:${e.type==='order'?'var(--deposit-dot)':'var(--unpaid-dot)'}"></div><div class="ecard-inner"><div class="ecard-top"><div><div class="ecard-name">${e.name}</div><div class="ecard-cat">${e.cat}${e.type==='order'&&e.orderId?'・'+( orders.find(o=>o.id===e.orderId)||{name:'—'}).name:''}</div></div><div class="ecard-amt">- $${e.amt.toLocaleString()}</div></div><div style="font-size:12px;color:var(--sub);margin-top:6px;display:flex;align-items:center;gap:4px"><i class="ti ti-calendar" style="font-size:12px"></i>${e.date}</div></div></div>`;
+    list.innerHTML=`<button class="add-exp-btn" onclick="openExpModal()"><i class="ti ti-plus"></i>新增支出</button>`+
+      (me.length===0?'<div style="text-align:center;padding:24px 0;color:var(--sub);font-size:13px">這個月還沒有支出紀錄</div>':
+      (orderExps.length?`<div style="font-size:11px;font-weight:500;letter-spacing:0.14em;color:var(--rose);margin-bottom:8px;display:flex;justify-content:space-between"><span>訂單支出</span><span style="font-weight:400;color:var(--sub)">共 - $${totalOrderExp.toLocaleString()}</span></div>`+orderExps.map(expCard).join(''):'')
+      +(opExps.length?`<div style="font-size:11px;font-weight:500;letter-spacing:0.14em;color:var(--rose);margin:12px 0 8px;display:flex;justify-content:space-between"><span>營運支出</span><span style="font-weight:400;color:var(--sub)">共 - $${totalOpExp.toLocaleString()}</span></div>`+opExps.map(expCard).join(''):''));
+  }
+}
+
+function markPayFromList(id){
+  const o=orders.find(x=>x.id===id);if(!o)return;
+  if(o.pay==='unpaid')o.pay='deposit';else if(o.pay==='deposit')o.pay='paid';
+  renderPayment();
+}
+let currentExpType='order';
+function setExpType(t){
+  currentExpType=t;
+  document.getElementById('expTypeOrder').classList.toggle('on',t==='order');
+  document.getElementById('expTypeOp').classList.toggle('on',t==='operation');
+  document.getElementById('expOrderField').style.display=t==='order'?'block':'none';
+  document.getElementById('expTypeHint').textContent=t==='order'
+    ?'當天執行訂單的花費，計入該訂單利潤'
+    :'店租、進修、設備等固定營運成本';
+}
+function openExpModal(){
+  const d=new Date();
+  document.getElementById('expDate').value=`${payMonth.y}-${String(payMonth.m+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  document.getElementById('expName').value='';
+  document.getElementById('expAmt').value='';
+  currentExpType='order';
+  setExpType('order');
+  // populate orders dropdown
+  const sel=document.getElementById('expOrderId');
+  sel.innerHTML='<option value="">不指定</option>'+
+    orders.map(o=>`<option value="${o.id}">${o.name}・${o.service}・${o.date}</option>`).join('');
+  document.getElementById('expModal').classList.add('show');
+}
+function addExpense(){
+  const name=document.getElementById('expName').value.trim();
+  const amt=parseInt(document.getElementById('expAmt').value)||0;
+  if(!name||!amt){alert('請填寫項目與金額');return;}
+  const orderId=currentExpType==='order'?parseInt(document.getElementById('expOrderId').value)||null:null;
+  expenses.push({id:nextExpId++,name,cat:document.getElementById('expCat').value,amt,date:document.getElementById('expDate').value,type:currentExpType,orderId});
+  closeSheet('expModal');renderPayment();
+}
+
+// CLIENTS
+let clientFilter='all';
+let clientSearch='';
+let clientView='list';
+let activeTags=new Set();
+
+function toggleClientView(){
+  clientView=clientView==='list'?'tags':'list';
+  document.getElementById('clientSearchInput').placeholder=clientView==='tags'?'直接輸入關鍵字搜尋…':'搜尋客戶姓名…';
+  document.getElementById('clientFilterTabs').style.display=clientView==='list'?'flex':'none';
+  renderClients();
+}
+function setClientFilter(el,f){document.querySelectorAll('#clientFilterTabs .ftab').forEach(x=>x.classList.remove('on'));el.classList.add('on');clientFilter=f;renderClients();}
+function filterClients(v){clientSearch=v.toLowerCase();renderClients();}
+
+function renderClients(){
+  const content=document.getElementById('clientContent');
+  if(clientView==='list'){
+    const filtered=clients.filter(c=>{
+      const ms=!clientSearch||c.name.toLowerCase().includes(clientSearch);
+      const mf=clientFilter==='all'||(clientFilter==='repeat'&&c.repeat)||(clientFilter==='allergy'&&c.allergy)||(clientFilter==='sensitive'&&c.skin.includes('敏感肌'));
+      return ms&&mf;
+    });
+    content.innerHTML=`<div style="padding:12px 16px ${filtered.length?'0':'12px'}">`+
+      (filtered.length?filtered.map(c=>`
+        <div class="ccard" onclick="openClientDetail(${c.id})">
+          <div class="cavatar ${c.repeat?'repeat':''}">${c.name[0]}</div>
+          <div class="cinfo">
+            <div class="cname-row"><span class="cname">${c.name}</span>${c.repeat?'<span class="repeat-badge">回頭客</span>':''}</div>
+            <div style="font-size:12px;color:var(--sub);margin:2px 0">${c.phone}</div>
+            <div class="ctags">
+              ${c.skin.map(s=>`<span class="ctag ${s==='敏感肌'||s==='痘痘肌'?'warn':''}">${s}</span>`).join('')}
+              ${c.allergy?`<span class="ctag warn">⚠ ${c.allergy}</span>`:''}
+            </div>
+          </div>
+          <div class="cright"><div class="corder-count">${c.orders.length} 筆</div><div class="clast">${c.orders[0].date}</div></div>
+        </div>`).join('')
+      :'<div style="text-align:center;padding:32px 0;color:var(--sub);font-size:13px">沒有符合的客戶</div>')+'</div>';
+  } else {
+    renderTagSearch(content);
+  }
+}
+
+function renderTagSearch(container){
+  const groups={};tags.forEach(t=>{if(!groups[t.cat])groups[t.cat]=[];groups[t.cat].push(t);});
+  const noFilter=!activeTags.size&&!clientSearch;
+  const tagCatsHtml=Object.entries(groups).map(([cat,list])=>`
+    <div class="cat-row"><div class="cat-label">${cat}</div>
+    <div class="chips">
+      ${list.map(t=>`<div class="tag-chip ${activeTags.has(t.name)?'on':''}" onclick="toggleActiveTag('${t.name}')">${t.name}</div>`).join('')}
+      <div class="add-tag-chip" onclick="openManageTags()"><i class="ti ti-plus"></i>新增</div>
+    </div></div>`).join('');
+  const records=[...orders.map(o=>({type:'訂單',name:o.name,service:o.service,date:o.date,tags:o.tags||[]}))];
+  const filtered=noFilter?[]:records.filter(r=>{
+    const mK=!clientSearch||(r.name.toLowerCase().includes(clientSearch)||r.service.includes(clientSearch)||r.tags.some(t=>t.includes(clientSearch)));
+    const mT=!activeTags.size||[...activeTags].every(at=>r.tags.includes(at));
+    return mK&&mT;
+  });
+  const activeArr=[...activeTags];
+  const filtersHtml=activeArr.length?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">
+    ${activeArr.map(t=>`<span style="font-size:12px;font-weight:500;padding:5px 10px;border-radius:20px;background:var(--rose-light);border:0.5px solid var(--rose);color:var(--rose-deep);display:inline-flex;align-items:center;gap:5px">${t}<span style="cursor:pointer" onclick="toggleActiveTag('${t}')"><i class="ti ti-x"></i></span></span>`).join('')}
+    <span style="font-size:12px;color:var(--sub);cursor:pointer;padding:5px 10px;border:0.5px solid var(--line);border-radius:20px;background:var(--white)" onclick="clearAllTags()">清除全部</span>
+  </div>`:'';
+  const resultsHtml=noFilter
+    ?`<div style="text-align:center;padding:40px 0"><i class="ti ti-tag" style="font-size:32px;color:var(--line);display:block;margin-bottom:10px"></i><div style="font-size:13px;color:var(--sub);line-height:1.8">點選標籤或輸入關鍵字<br>來搜尋訂單與素材日期</div></div>`
+    :(!filtered.length?filtersHtml+`<div style="text-align:center;padding:24px 0;color:var(--sub);font-size:13px">沒有符合的結果</div>`
+    :filtersHtml+`<div style="font-size:12px;font-weight:500;letter-spacing:0.1em;color:var(--rose);margin-bottom:8px">找到 ${filtered.length} 筆結果</div>`+
+    filtered.map(r=>`<div class="rcard"><div class="rcard-top"><div class="rcard-name">${r.name}</div><span class="rcard-type">${r.type}</span></div><div class="rcard-svc">${r.service}</div><div class="rcard-date"><i class="ti ti-calendar" style="font-size:13px"></i>${r.date}</div><div class="chips">${r.tags.map(t=>`<span class="rtag ${activeTags.has(t)||(clientSearch&&t.includes(clientSearch))?'match':''}">${t}</span>`).join('')}</div></div>`).join(''));
+  container.innerHTML=`<div style="padding:12px 16px 0">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div style="font-size:13px;font-weight:500;color:var(--text)">標籤搜尋</div>
+      <div style="font-size:12px;color:var(--rose);cursor:pointer" onclick="openManageTags()"><i class="ti ti-settings" style="margin-right:3px"></i>管理標籤</div>
+    </div>
+    ${tagCatsHtml}
+    <div style="height:1px;background:var(--line);margin:12px 0"></div>
+    ${resultsHtml}
+  </div>`;
+}
+
+function toggleActiveTag(name){activeTags.has(name)?activeTags.delete(name):activeTags.add(name);renderClients();}
+function clearAllTags(){activeTags.clear();renderClients();}
+
+function openClientDetail(id){
+  const c=clients.find(x=>x.id===id);if(!c)return;
+  document.getElementById('clientDetailContent').innerHTML=`
+    <div class="sheet-handle"></div>
+    <div class="profile-hero">
+      <div class="profile-av ${c.repeat?'repeat':''}">${c.name[0]}</div>
+      <div><div class="profile-name">${c.name}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          ${c.repeat?'<span class="repeat-badge">回頭客</span>':''}
+          ${c.allergy?'<span class="ctag warn">⚠ 過敏注意</span>':''}
+        </div>
+      </div>
+    </div>
+    <div class="profile-sec">
+      <div class="sec-title" style="margin-bottom:10px">基本資料</div>
+      <div class="srow"><span class="skey">電話</span><span class="sval">${c.phone}</span></div>
+      <div class="srow"><span class="skey">風格偏好</span><span class="sval">${c.style||'未填'}</span></div>
+      <div class="srow"><span class="skey">服務次數</span><span class="sval">${c.orders.length} 次</span></div>
+    </div>
+    <div class="profile-sec">
+      <div class="sec-title" style="margin-bottom:10px">膚質與過敏</div>
+      <div class="chips" style="margin-bottom:${c.allergy?'10px':'0'}">
+        ${c.skin.map(s=>`<span class="skin-chip ${s==='敏感肌'||s==='痘痘肌'?'warn':''}">${s}</span>`).join('')}
+      </div>
+      ${c.allergy?`<div class="srow" style="margin-top:8px"><span class="skey">過敏成分</span><span class="sval" style="color:var(--red)">${c.allergy}</span></div>`:''}
+      ${c.note?`<div style="background:var(--rose-bg);border-radius:8px;padding:10px 12px;margin-top:10px;font-size:13px;color:var(--sub);line-height:1.6">${c.note}</div>`:''}
+    </div>
+    <div class="profile-sec">
+      <div class="sec-title" style="margin-bottom:10px">歷史訂單（${c.orders.length} 筆）</div>
+      ${c.orders.map(o=>`<div class="hist-card"><div class="hist-top"><span class="hist-name">${o.service}</span><span class="hist-date">${o.date}</span></div><div class="hist-meta"><i class="ti ti-map-pin" style="font-size:11px;margin-right:3px"></i>${o.loc}</div></div>`).join('')}
+    </div>
+    <div class="sheet-actions">
+      <div class="sact" onclick="closeSheet('clientDetailSheet')"><i class="ti ti-edit"></i> 編輯</div>
+      <div class="sact primary" onclick="openAddOrder();closeSheet('clientDetailSheet')"><i class="ti ti-calendar-plus"></i> 新增訂單</div>
+    </div>`;
+  document.getElementById('clientDetailSheet').classList.add('show');
+}
+
+function openManageTags(){renderAllTagsList();document.getElementById('manageTagsModal').classList.add('show');}
+function renderAllTagsList(){
+  document.getElementById('allTagsList').innerHTML=tags.map(t=>`
+    <div class="mtag-row">
+      <div class="mtag-info"><span class="mtag-name">${t.name}</span><span class="mtag-cat">${t.cat}</span></div>
+      ${!t.preset?`<span class="mtag-del" onclick="deleteTag(${t.id})"><i class="ti ti-trash"></i></span>`:'<span style="font-size:11px;color:var(--line)">預設</span>'}
+    </div>`).join('');
+}
+function addTag(){
+  const name=document.getElementById('newTagName').value.trim();
+  const cat=document.getElementById('newTagCat').value;
+  if(!name)return;
+  if(tags.find(t=>t.name===name)){alert('標籤已存在');return;}
+  tags.push({id:nextTagId++,name,cat,preset:false});
+  document.getElementById('newTagName').value='';
+  renderAllTagsList();
+}
+function deleteTag(id){tags=tags.filter(t=>t.id!==id);renderAllTagsList();}
+
+// ADD ORDER
+let addStep=1;
+let addForm={isExisting:false,clientName:'',phone:'',service:'',date:'',time:'06:00',loc:'',people:'僅新娘',skin:[],allergy:'',style:'自然清透感',note:'',tags:[],total:'',deposit:''};
+const EXISTING_CLIENTS=[{name:'陳雅婷',phone:'0923-456-789',orders:2},{name:'蔡佳穎',phone:'0956-789-012',orders:2},{name:'林怡君',phone:'0912-345-678',orders:1}];
+
+let prevPage='dashboard';
+function openAddOrder(){
+  const active=document.querySelector('.nav-item.active');
+  prevPage=active?active.id.replace('nav-',''):'dashboard';
+  document.getElementById('addOrderOverlay').classList.add('show');
+  document.getElementById('addSuccess').style.display='none';
+  document.getElementById('addFormContent').style.display='block';
+  document.getElementById('addCtaBar').style.display='flex';
+  document.getElementById('addStepsBar').style.display='flex';
+  addStep=1;
+  addForm={isExisting:false,clientName:'',phone:'',service:'',date:'',time:'06:00',loc:'',people:'僅新娘',skin:[],allergy:'',style:'自然清透感',note:'',tags:[],total:'',deposit:''};
+  renderAddSteps();renderAddForm();
+}
+function closeAddOrder(){
+  document.getElementById('addOrderOverlay').classList.remove('show');
+  navTo(prevPage);
+}
+
+function renderAddSteps(){
+  document.getElementById('addStepsBar').innerHTML=['客戶','服務','膚質','收款'].map((l,i)=>{
+    const n=i+1;const cls=n===addStep?'on':n<addStep?'done':'';
+    return`<div class="step ${cls}"><div class="step-dot">${n<addStep?'✓':n}</div><div class="step-label">${l}</div></div>`;
+  }).join('');
+  document.getElementById('addBackBtn').style.display=addStep>1?'block':'none';
+  document.getElementById('addNextBtn').textContent=addStep===4?'建立訂單':'下一步';
+}
+
+function renderAddForm(){
+  const c=document.getElementById('addFormContent');
+  if(addStep===1){
+    c.innerHTML=`
+      <div class="sec-divider">客戶資料</div>
+      <div class="field">
+        <label class="fl">搜尋既有客戶</label>
+        <div style="position:relative">
+          <i class="ti ti-search search-icon"></i>
+          <input class="search-input" type="text" placeholder="輸入姓名搜尋…" id="addClientSearch" oninput="addSearchClient()" autocomplete="off" style="padding-left:40px">
+          <div class="client-dd" id="addClientDd">
+            ${EXISTING_CLIENTS.map(c=>`<div class="client-opt" onclick="addSelectClient('${c.name}','${c.phone}')"><div>${c.name}</div><div class="client-opt-sub">${c.phone} · ${c.orders} 次</div></div>`).join('')}
+          </div>
+        </div>
+      </div>
+      <div id="addExistingTag" style="display:${addForm.isExisting?'block':'none'}"><span class="existing-tag"><i class="ti ti-user-check"></i>${addForm.clientName}（既有客戶）</span></div>
+      <div class="field"><label class="fl">姓名 <span class="req">*</span></label><input type="text" id="addName" placeholder="客戶姓名" value="${addForm.clientName}" oninput="addForm.clientName=this.value"></div>
+      <div class="field"><label class="fl">聯絡電話 <span class="req">*</span></label><input type="tel" placeholder="0912-345-678" value="${addForm.phone}" oninput="addForm.phone=this.value"></div>`;
+  } else if(addStep===2){
+    c.innerHTML=`
+      <div class="sec-divider">服務項目</div>
+      <div class="svc-grid" style="margin-bottom:16px">
+        ${SERVICES.map(s=>`<div class="svc-card ${addForm.service===s?'on':''}" onclick="addForm.service='${s}';renderAddForm()"><div class="svc-chk">✓</div><div class="svc-name">${s}</div></div>`).join('')}
+      </div>
+      <div class="sec-divider">時間與地點</div>
+      <div class="drow">
+        <div class="field"><label class="fl">婚禮日期 <span class="req">*</span></label><input type="date" value="${addForm.date}" onchange="addForm.date=this.value"></div>
+        <div class="field"><label class="fl">開妝時間</label><input type="time" value="${addForm.time}" onchange="addForm.time=this.value"></div>
+      </div>
+      <div class="field"><label class="fl">開妝地點 <span class="req">*</span></label><input type="text" placeholder="飯店或場地" value="${addForm.loc}" oninput="addForm.loc=this.value"></div>
+      <div class="field"><label class="fl">服務人數</label>
+        <select onchange="addForm.people=this.value">
+          ${['僅新娘（1 人）','新娘＋媽媽（2 人）','新娘＋伴娘（2–4 人）','5 人以上（請備注）'].map(o=>`<option ${addForm.people===o?'selected':''}>${o}</option>`).join('')}
+        </select>
+      </div>`;
+  } else if(addStep===3){
+    c.innerHTML=`
+      <div class="sec-divider">膚質</div>
+      <div class="chips" style="margin-bottom:14px">
+        ${SKINS.map(s=>`<div class="chip ${addForm.skin.includes(s)?'on':''}" onclick="addToggleSkin('${s}')">${s}</div>`).join('')}
+      </div>
+      <div class="field"><label class="fl">過敏成分</label><input type="text" placeholder="例：含酒精、防腐劑" value="${addForm.allergy}" oninput="addForm.allergy=this.value"></div>
+      <div class="sec-divider">風格偏好</div>
+      <div class="chips" style="margin-bottom:14px">
+        ${STYLES.map(s=>`<div class="chip ${addForm.style===s?'on':''}" onclick="addForm.style='${s}';renderAddForm()">${s}</div>`).join('')}
+      </div>
+      <div class="sec-divider">標籤</div>
+      <div class="chips" style="margin-bottom:14px">
+        ${tags.map(t=>`<div class="chip ${addForm.tags.includes(t.name)?'on':''}" onclick="addToggleTag('${t.name}')">${t.name}</div>`).join('')}
+      </div>
+      <div class="field"><label class="fl">特殊需求備注</label><textarea placeholder="任何需要特別注意的事項…" oninput="addForm.note=this.value">${addForm.note}</textarea></div>`;
+  } else {
+    c.innerHTML=`
+      <div class="sec-divider">收款設定</div>
+      <div class="drow">
+        <div class="field"><label class="fl">總金額 <span class="req">*</span></label><input type="number" id="addTotal" placeholder="NT$" value="${addForm.total}" onblur="addForm.total=this.value"></div>
+        <div class="field"><label class="fl">訂金金額</label><input type="number" id="addDeposit" placeholder="建議 30%" value="${addForm.deposit}" onblur="addForm.deposit=this.value"></div>
+      </div>
+      <div style="font-size:11px;color:var(--sub);margin-bottom:16px">收款狀態將設為「未付款」，可於日曆或收款頁更新</div>
+      <div class="sec-divider">確認訂單</div>
+      <div style="background:var(--white);border:0.5px solid var(--line);border-radius:12px;padding:14px 16px">
+        <div class="srow"><span class="skey">客戶</span><span class="sval">${addForm.clientName||'—'}</span></div>
+        <div class="srow"><span class="skey">服務</span><span class="sval">${addForm.service||'—'}</span></div>
+        <div class="srow"><span class="skey">日期</span><span class="sval">${addForm.date||'—'}</span></div>
+        <div class="srow"><span class="skey">時間</span><span class="sval">${addForm.time}</span></div>
+        <div class="srow"><span class="skey">地點</span><span class="sval">${addForm.loc||'—'}</span></div>
+      </div>`;
+  }
+}
+
+function addNextStep(){
+  if(addStep===1){
+    const nameEl=document.getElementById('addName');
+    if(nameEl)addForm.clientName=nameEl.value.trim();
+    if(!addForm.clientName){alert('請填寫客戶姓名');return;}
+  }
+  if(addStep===2&&!addForm.service){alert('請選擇服務項目');return;}
+  if(addStep===2&&!addForm.date){alert('請選擇日期');return;}
+  if(addStep===2&&!addForm.loc){alert('請填寫地點');return;}
+  if(addStep===4){addSubmit();return;}
+  addStep++;renderAddSteps();renderAddForm();
+}
+function addPrevStep(){if(addStep>1){addStep--;renderAddSteps();renderAddForm();}}
+function addToggleSkin(s){const i=addForm.skin.indexOf(s);i>-1?addForm.skin.splice(i,1):addForm.skin.push(s);renderAddForm();}
+function addToggleTag(t){const i=addForm.tags.indexOf(t);i>-1?addForm.tags.splice(i,1):addForm.tags.push(t);renderAddForm();}
+function addSearchClient(){
+  const v=document.getElementById('addClientSearch').value.toLowerCase();
+  const dd=document.getElementById('addClientDd');
+  if(!v){dd.classList.remove('show');return;}
+  const m=EXISTING_CLIENTS.filter(c=>c.name.includes(v));
+  if(!m.length){dd.classList.remove('show');return;}
+  dd.innerHTML=m.map(c=>`<div class="client-opt" onclick="addSelectClient('${c.name}','${c.phone}')"><div>${c.name}</div><div class="client-opt-sub">${c.phone} · ${c.orders} 次</div></div>`).join('');
+  dd.classList.add('show');
+}
+function addSelectClient(name,phone){
+  addForm.clientName=name;addForm.phone=phone;addForm.isExisting=true;
+  // auto-fill skin/allergy/style from existing client data
+  const c=clients.find(x=>x.name===name);
+  if(c){
+    if(c.skin&&c.skin.length)addForm.skin=[...c.skin];
+    if(c.allergy)addForm.allergy=c.allergy;
+    if(c.style)addForm.style=c.style;
+  }
+  document.getElementById('addClientSearch').value='';
+  document.getElementById('addClientDd').classList.remove('show');
+  document.getElementById('addName').value=name;
+  document.getElementById('addExistingTag').style.display='block';
+}
+function addSubmit(){
+  // force read from DOM inputs regardless of blur state
+  const totalEl=document.getElementById('addTotal');
+  const depositEl=document.getElementById('addDeposit');
+  if(totalEl){totalEl.blur();addForm.total=totalEl.value;}
+  if(depositEl){depositEl.blur();addForm.deposit=depositEl.value;}
+  const totalVal=parseInt(addForm.total)||0;
+  if(totalVal<=0){
+    if(totalEl){totalEl.style.borderColor='#F87171';totalEl.focus();}
+    alert('請填寫總金額');
+    return;
+  }
+  const newOrder={id:nextOrderId++,name:addForm.clientName,service:addForm.service,date:addForm.date,time:addForm.time,loc:addForm.loc,people:addForm.people,skin:addForm.skin,allergy:addForm.allergy,style:addForm.style,note:addForm.note,pay:'unpaid',deposit_amt:parseInt(addForm.deposit)||0,final_amt:parseInt(addForm.total)||0,tags:addForm.tags,status:'confirmed'};
+  orders.push(newOrder);
+  // sync clients
+  const existingClient=clients.find(c=>c.name===addForm.clientName);
+  if(existingClient){
+    existingClient.orders.unshift({date:addForm.date,service:addForm.service,loc:addForm.loc});
+    existingClient.repeat=existingClient.orders.length>1;
+    if(addForm.skin&&addForm.skin.length)existingClient.skin=addForm.skin;
+    if(addForm.allergy)existingClient.allergy=addForm.allergy;
+    if(addForm.style)existingClient.style=addForm.style;
+  } else {
+    clients.unshift({id:clients.length+10,name:addForm.clientName,phone:addForm.phone,skin:addForm.skin||[],allergy:addForm.allergy||'',style:addForm.style||'',note:addForm.note||'',repeat:false,orders:[{date:addForm.date,service:addForm.service,loc:addForm.loc}]});
+  }
+  addForm={isExisting:false,clientName:'',phone:'',service:'',date:'',time:'06:00',loc:'',people:'僅新娘',skin:[],allergy:'',style:'自然清透感',note:'',tags:[],total:'',deposit:''};
+  document.getElementById('addFormContent').style.display='none';
+  document.getElementById('addCtaBar').style.display='none';
+  document.getElementById('addStepsBar').style.display='none';
+  document.getElementById('addSuccess').style.display='flex';
+}
+
+// PAY CONFIRM
+let payConfirmTaskId=null;
+let payConfirmSource=null;
+let selectedPayOpt=null;
+
+function openPayConfirm(id, source){
+  const t=orders.find(x=>x.id===id);
+  if(!t)return;
+  if(t.pay==='paid'){alert('此訂單已付清');return;}
+  payConfirmTaskId=id;
+  payConfirmSource=source;
+  selectedPayOpt=null;
+  // reset UI
+  document.getElementById('payOptDeposit').classList.remove('selected');
+  document.getElementById('payOptPaid').classList.remove('selected');
+  const btn=document.getElementById('payConfirmBtn');
+  btn.style.opacity='0.4';btn.style.pointerEvents='none';
+  // set title with client name
+  document.getElementById('payConfirmTitle').textContent=t.name+'・確認收款';
+  // show/hide deposit option based on current status
+  const depOpt=document.getElementById('payOptDeposit');
+  depOpt.style.display=t.pay==='deposit'?'none':'flex';
+  document.getElementById('payConfirmSub').textContent=
+    t.pay==='deposit'?'訂金已收，請確認尾款收款狀況：':'請選擇收款狀況：';
+  document.getElementById('payConfirmModal').classList.add('show');
+}
+
+function selectPayOpt(opt){
+  selectedPayOpt=opt;
+  document.getElementById('payOptDeposit').classList.toggle('selected',opt==='deposit');
+  document.getElementById('payOptPaid').classList.toggle('selected',opt==='paid');
+  const btn=document.getElementById('payConfirmBtn');
+  btn.style.opacity='1';btn.style.pointerEvents='auto';
+}
+
+function applyPayConfirm(){
+  if(!selectedPayOpt||!payConfirmTaskId)return;
+  const t=orders.find(x=>x.id===payConfirmTaskId);
+  if(t){t.pay=selectedPayOpt;}
+  closePayConfirm();
+  // refresh views
+  if(calSelDate)renderDayDetail(calSelDate);
+  renderCalendar();
+  renderPayment();
+  // re-open detail sheet if came from sheet
+  if(payConfirmSource==='sheet'&&payConfirmTaskId){
+    setTimeout(()=>openCalDetail(payConfirmTaskId),100);
+  }
+  if(payConfirmSource==='list'){
+    renderPayment();
+  }
+}
+
+function closePayConfirm(){
+  document.getElementById('payConfirmModal').classList.remove('show');
+  payConfirmTaskId=null;selectedPayOpt=null;
+}
+
+// EDIT ORDER SHEET
+let editOrderId=null;
+
+function openEditSheet(id){
+  const t=orders.find(x=>x.id===id);
+  if(!t)return;
+  editOrderId=id;
+  // close detail sheet first
+  closeSheet('calDetailSheet');
+  document.getElementById('editSheetTitle').textContent=t.name+'・編輯訂單';
+  document.getElementById('editSheetBody').innerHTML=`
+    <div class="field"><label class="fl">服務項目</label>
+      <select id="editService" style="margin-bottom:0">
+        ${SERVICES.map(s=>`<option ${t.service===s?'selected':''}>${s}</option>`).join('')}
+      </select>
+    </div>
+    <div class="drow">
+      <div class="field"><label class="fl">婚禮日期</label><input type="date" id="editDate" value="${t.date}"></div>
+      <div class="field"><label class="fl">開妝時間</label><input type="time" id="editTime" value="${t.time}"></div>
+    </div>
+    <div class="field"><label class="fl">開妝地點</label><input type="text" id="editLoc" value="${t.loc}" placeholder="飯店或場地"></div>
+    <div class="field"><label class="fl">服務人數</label>
+      <select id="editPeople">
+        ${['僅新娘（1 人）','新娘＋媽媽（2 人）','新娘＋伴娘（2–4 人）','5 人以上（請備注）'].map(o=>`<option ${t.people===o?'selected':''}>${o}</option>`).join('')}
+      </select>
+    </div>
+    <div class="field"><label class="fl">過敏成分</label><input type="text" id="editAllergy" value="${t.allergy||''}" placeholder="例：含酒精"></div>
+    <div class="drow">
+      <div class="field"><label class="fl">總金額</label><input type="number" id="editTotal" value="${t.final_amt||''}"></div>
+      <div class="field"><label class="fl">訂金</label><input type="number" id="editDeposit" value="${t.deposit_amt||''}"></div>
+    </div>
+    <div class="field"><label class="fl">特殊需求備注</label><textarea id="editNote" style="min-height:70px">${t.note||''}</textarea></div>
+  `;
+  document.getElementById('editSheet').classList.add('show');
+}
+
+function saveEditOrder(){
+  const t=orders.find(x=>x.id===editOrderId);
+  if(!t)return;
+  t.service=document.getElementById('editService').value;
+  t.date=document.getElementById('editDate').value;
+  t.time=document.getElementById('editTime').value;
+  t.loc=document.getElementById('editLoc').value;
+  t.people=document.getElementById('editPeople').value;
+  t.allergy=document.getElementById('editAllergy').value;
+  t.final_amt=parseInt(document.getElementById('editTotal').value)||t.final_amt;
+  t.deposit_amt=parseInt(document.getElementById('editDeposit').value)||t.deposit_amt;
+  t.note=document.getElementById('editNote').value;
+  closeSheet('editSheet');
+  if(calSelDate)renderDayDetail(calSelDate);
+  renderCalendar();
+}
+
+// MARK ORDER DONE
+function markOrderDone(id){
+  const t=orders.find(x=>x.id===id);
+  if(!t)return;
+  if(confirm(t.name+' 的服務已完成？')){
+    t.status='done';
+    if(calSelDate)renderDayDetail(calSelDate);
+    renderCalendar();
+  }
+}
+
+// INIT
+renderCalendar();
+renderPayment();
+renderClients();
+renderDashToday();
+</script>
+</body>
+</html>
