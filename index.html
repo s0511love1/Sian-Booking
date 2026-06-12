@@ -7,7 +7,6 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 /* ============================================================
    RESET & ROOT
@@ -2092,13 +2091,33 @@ document.addEventListener('click',(e)=>{
   }
 });
 
+// ── Lazy-load SheetJS library (only when Excel export is used) ──
+let xlsxLoadPromise=null;
+function loadXLSX(){
+  if(typeof XLSX!=='undefined')return Promise.resolve();
+  if(xlsxLoadPromise)return xlsxLoadPromise;
+  xlsxLoadPromise=new Promise((resolve,reject)=>{
+    const script=document.createElement('script');
+    script.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+    script.onload=()=>resolve();
+    script.onerror=()=>reject(new Error('元件載入失敗，請確認網路連線'));
+    document.head.appendChild(script);
+  });
+  return xlsxLoadPromise;
+}
+
 // ── Export Excel report (訂單/客戶/支出) ──
 function exportExcel(){
   document.getElementById('avMenu').style.display='none';
-  if(typeof XLSX==='undefined'){
-    alert('Excel 匯出功能需要載入額外元件，請確認網路連線後再試一次');
-    return;
-  }
+  showToast('正在準備 Excel 報表…');
+  loadXLSX().then(()=>{
+    buildExcelReport();
+  }).catch(err=>{
+    alert(err.message);
+  });
+}
+
+function buildExcelReport(){
   try{
     const wb=XLSX.utils.book_new();
 
