@@ -51,6 +51,9 @@ body{font-family:var(--font-main);font-size:14px;color:var(--text)}
 .topbar-actions{display:flex;align-items:center;gap:10px}
 .icon-btn{width:34px;height:34px;border-radius:50%;background:var(--rose-bg);border:0.5px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--rose);font-size:16px;cursor:pointer;position:relative;flex-shrink:0}
 .icon-btn .notif-dot{position:absolute;top:5px;right:5px;width:8px;height:8px;border-radius:50%;background:var(--unpaid-dot);border:1.5px solid var(--white)}
+#avMenu div:hover{background:var(--rose-bg)}
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--rose-deep);color:#fff;font-size:13px;font-weight:500;padding:10px 20px;border-radius:20px;box-shadow:0 4px 16px rgba(0,0,0,0.15);z-index:1000;opacity:0;transition:opacity 0.3s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1}
 .av{background:var(--rose-light);color:var(--rose-deep);font-size:13px;font-weight:500}
 
 /* ============================================================
@@ -414,7 +417,13 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
             <i class="ti ti-bell"></i>
             <div class="notif-dot"></div>
           </div>
-          <div class="icon-btn av">嫻</div>
+          <div class="icon-btn av" onclick="toggleAvMenu()" style="position:relative">嫻
+            <div id="avMenu" style="display:none;position:absolute;top:42px;right:0;background:var(--white);border:0.5px solid var(--line);border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,0.12);min-width:160px;z-index:600;overflow:hidden">
+              <div onclick="event.stopPropagation();exportBackup()" style="padding:12px 16px;font-size:13px;font-weight:400;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:8px;border-bottom:0.5px solid var(--border-light)"><i class="ti ti-download"></i>匯出備份</div>
+              <div onclick="event.stopPropagation();triggerImport()" style="padding:12px 16px;font-size:13px;font-weight:400;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:8px"><i class="ti ti-upload"></i>匯入進度</div>
+            </div>
+          </div>
+          <input type="file" id="importFileInput" accept="application/json" style="display:none" onchange="importBackup(event)">
         </div>
       </div>
     </div>
@@ -745,6 +754,8 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
       </div>
     </div>
   </div>
+
+  <div class="toast" id="toast"></div>
 
 </div><!-- #app -->
 
@@ -1177,6 +1188,7 @@ function addExpense(){
   if(!name||!amt){alert('請填寫項目與金額');return;}
   const orderId=currentExpType==='order'?parseInt(document.getElementById('expOrderId').value)||null:null;
   expenses.push({id:nextExpId++,name,cat:document.getElementById('expCat').value,amt,date:document.getElementById('expDate').value,type:currentExpType,orderId});
+  saveData();
   closeSheet('expModal');renderPayment();
 }
 
@@ -1315,9 +1327,10 @@ function addTag(){
   if(tags.find(t=>t.name===name)){alert('標籤已存在');return;}
   tags.push({id:nextTagId++,name,cat,preset:false});
   document.getElementById('newTagName').value='';
+  saveData();
   renderAllTagsList();
 }
-function deleteTag(id){tags=tags.filter(t=>t.id!==id);renderAllTagsList();}
+function deleteTag(id){tags=tags.filter(t=>t.id!==id);saveData();renderAllTagsList();}
 
 // ADD ORDER
 let addStep=1;
@@ -1541,6 +1554,7 @@ function addSubmit(){
     clients.unshift({id:clients.length+10,name:addForm.clientName,phone:addForm.phone,skin:addForm.skin||[],allergy:addForm.allergy||'',style:addForm.style||'',note:addForm.note||'',repeat:newOrders.length>1,orders:newOrders.map(o=>({date:o.date,service:o.service,loc:o.loc}))});
   }
   addForm={isExisting:false,clientName:'',phone:'',serviceBlocks:[{service:'',date:'',time:'06:00',loc:'',people:'僅新娘',peopleNote:'',total:'',deposit:''}],skin:[],allergy:'',style:'自然清透感',note:'',tags:[]};
+  saveData();
   document.getElementById('addFormContent').style.display='none';
   document.getElementById('addCtaBar').style.display='none';
   document.getElementById('addStepsBar').style.display='none';
@@ -1628,6 +1642,7 @@ function applyPayConfirm(){
       t.pay='paid';
     }
   }
+  saveData();
   closePayConfirm();
   // refresh views
   if(calSelDate)renderDayDetail(calSelDate);
@@ -1704,6 +1719,7 @@ function saveEditOrder(){
   t.final_amt=parseInt(document.getElementById('editTotal').value)||t.final_amt;
   t.deposit_amt=parseInt(document.getElementById('editDeposit').value)||t.deposit_amt;
   t.note=document.getElementById('editNote').value;
+  saveData();
   closeSheet('editSheet');
   if(calSelDate)renderDayDetail(calSelDate);
   renderCalendar();
@@ -1718,6 +1734,7 @@ function markOrderDone(id){
   if(!t)return;
   if(confirm(t.name+' 的服務已完成？')){
     t.status='done';
+    saveData();
     if(calSelDate)renderDayDetail(calSelDate);
     renderCalendar();
     renderDashStats();
@@ -1725,7 +1742,132 @@ function markOrderDone(id){
   }
 }
 
+// ============================================================
+// LOCAL STORAGE PERSISTENCE
+// ============================================================
+const STORAGE_KEY='sian_data_v1';
+
+function saveData(){
+  try{
+    const data={
+      orders, expenses, tags, clients,
+      nextOrderId, nextExpId, nextTagId,
+      savedAt:new Date().toISOString()
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  }catch(e){
+    console.error('儲存失敗:', e);
+  }
+}
+
+function loadData(){
+  try{
+    const raw=localStorage.getItem(STORAGE_KEY);
+    if(!raw)return false;
+    const data=JSON.parse(raw);
+    if(data.orders)orders=data.orders;
+    if(data.expenses)expenses=data.expenses;
+    if(data.tags)tags=data.tags;
+    if(data.clients)clients=data.clients;
+    if(data.nextOrderId)nextOrderId=data.nextOrderId;
+    if(data.nextExpId)nextExpId=data.nextExpId;
+    if(data.nextTagId)nextTagId=data.nextTagId;
+    return true;
+  }catch(e){
+    console.error('讀取失敗:', e);
+    return false;
+  }
+}
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+// ── Avatar dropdown menu ──
+function toggleAvMenu(){
+  const menu=document.getElementById('avMenu');
+  menu.style.display=menu.style.display==='block'?'none':'block';
+}
+document.addEventListener('click',(e)=>{
+  const menu=document.getElementById('avMenu');
+  if(menu&&menu.style.display==='block'&&!e.target.closest('.av')){
+    menu.style.display='none';
+  }
+});
+
+// ── Export backup as JSON file ──
+function exportBackup(){
+  document.getElementById('avMenu').style.display='none';
+  const data={
+    orders, expenses, tags, clients,
+    nextOrderId, nextExpId, nextTagId,
+    exportedAt:new Date().toISOString(),
+    appName:'Sian 嫻美學 訂單管理系統'
+  };
+  const json=JSON.stringify(data, null, 2);
+  const blob=new Blob([json],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  const dateStr=new Date().toISOString().slice(0,10);
+  a.href=url;
+  a.download=`sian-backup-${dateStr}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('已匯出備份檔案');
+}
+
+// ── Trigger file picker for import ──
+function triggerImport(){
+  document.getElementById('avMenu').style.display='none';
+  document.getElementById('importFileInput').click();
+}
+
+// ── Import backup from JSON file ──
+function importBackup(event){
+  const file=event.target.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const data=JSON.parse(e.target.result);
+      if(!data.orders||!Array.isArray(data.orders)){
+        alert('檔案格式不正確，請確認是從本系統匯出的備份檔');
+        return;
+      }
+      if(!confirm('匯入將會覆蓋目前所有資料（訂單、客戶、支出、標籤），確定要繼續嗎？')){
+        return;
+      }
+      orders=data.orders||[];
+      expenses=data.expenses||[];
+      tags=data.tags||[];
+      clients=data.clients||[];
+      nextOrderId=data.nextOrderId||(Math.max(0,...orders.map(o=>o.id))+1);
+      nextExpId=data.nextExpId||(Math.max(0,...expenses.map(e=>e.id))+1);
+      nextTagId=data.nextTagId||(Math.max(0,...tags.map(t=>t.id))+1);
+      saveData();
+      // refresh all views
+      renderCalendar();
+      renderPayment();
+      renderClients();
+      renderDashStats();
+      renderDashToday();
+      showToast('已匯入備份資料');
+    }catch(err){
+      alert('讀取檔案失敗，請確認檔案格式正確');
+      console.error(err);
+    }
+  };
+  reader.readAsText(file);
+  event.target.value=''; // reset so same file can be re-selected later
+}
+
 // INIT
+loadData();
 renderCalendar();
 renderPayment();
 renderClients();
