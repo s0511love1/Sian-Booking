@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 /* ============================================================
    RESET & ROOT
@@ -217,6 +218,17 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 .pay-filter-tabs::-webkit-scrollbar{display:none}
 .ftab{font-size:12px;font-weight:500;padding:5px 13px;border-radius:20px;cursor:pointer;white-space:nowrap;border:0.5px solid var(--line);background:var(--white);color:var(--sub);transition:all 0.15s;flex-shrink:0}
 .ftab.on{background:var(--rose-bg);border-color:var(--rose);color:var(--rose-deep)}
+
+/* month nav rail (scroll spy) */
+.pay-content-wrap{position:relative;flex:1;overflow:hidden;display:flex}
+.pay-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 38px calc(var(--nav-h) + 16px) 16px}
+.month-rail{position:absolute;right:2px;top:8px;bottom:calc(var(--nav-h) + 8px);width:30px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:6px;z-index:30;padding-top:4px;overflow-y:auto}
+.month-rail::-webkit-scrollbar{display:none}
+.month-rail-item{font-size:10px;font-weight:500;color:var(--sub);padding:3px 0;width:26px;text-align:center;border-radius:8px;cursor:pointer;transition:all 0.15s;flex-shrink:0}
+.month-rail-item.active{background:var(--rose);color:var(--white);font-weight:700}
+.pay-section-head{font-size:12px;font-weight:600;letter-spacing:0.1em;color:var(--rose-deep);background:var(--warm);padding:6px 10px;border-radius:8px;margin:14px 0 8px;position:sticky;top:0;z-index:20}
+.pay-section-head:first-child{margin-top:0}
+.history-badge{font-size:10px;font-weight:500;background:var(--warm);color:var(--sub);padding:2px 8px;border-radius:20px;border:0.5px solid var(--line)}
 .sum-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px 16px 0}
 .sum-card{background:var(--white);border:0.5px solid var(--line);border-radius:12px;padding:14px 16px}
 .sum-card.full{grid-column:span 2}
@@ -418,9 +430,11 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
             <div class="notif-dot"></div>
           </div>
           <div class="icon-btn av" onclick="toggleAvMenu()" style="position:relative">嫻
-            <div id="avMenu" style="display:none;position:absolute;top:42px;right:0;background:var(--white);border:0.5px solid var(--line);border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,0.12);min-width:160px;z-index:600;overflow:hidden">
+            <div id="avMenu" style="display:none;position:absolute;top:42px;right:0;background:var(--white);border:0.5px solid var(--line);border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,0.12);min-width:180px;z-index:600;overflow:hidden">
               <div onclick="event.stopPropagation();exportBackup()" style="padding:12px 16px;font-size:13px;font-weight:400;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:8px;border-bottom:0.5px solid var(--border-light)"><i class="ti ti-download"></i>匯出備份</div>
-              <div onclick="event.stopPropagation();triggerImport()" style="padding:12px 16px;font-size:13px;font-weight:400;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:8px"><i class="ti ti-upload"></i>匯入進度</div>
+              <div onclick="event.stopPropagation();triggerImport()" style="padding:12px 16px;font-size:13px;font-weight:400;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:8px;border-bottom:0.5px solid var(--border-light)"><i class="ti ti-upload"></i>匯入進度</div>
+              <div onclick="event.stopPropagation();exportExcel()" style="padding:12px 16px;font-size:13px;font-weight:400;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:8px;border-bottom:0.5px solid var(--border-light)"><i class="ti ti-file-spreadsheet"></i>匯出 Excel 報表</div>
+              <div onclick="event.stopPropagation();archiveHistory()" style="padding:12px 16px;font-size:13px;font-weight:400;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:8px"><i class="ti ti-archive"></i>封存歷史訂單</div>
             </div>
           </div>
           <input type="file" id="importFileInput" accept=".json,application/json" style="display:none" onchange="importBackup(event)">
@@ -447,14 +461,14 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
         </div>
         <div class="sec-head"><div class="sec-title">最近訂單</div><div class="sec-link" onclick="navTo('calendar')">全部 →</div></div>
         <div class="panel" id="dashRecentOrders"></div>
-        <div class="sec-head"><div class="sec-title">本月收款進度</div><div class="sec-link" onclick="navTo('payment')">收款紀錄 →</div></div>
+        <div class="sec-head"><div class="sec-title">所有訂單收款進度</div><div class="sec-link" onclick="navTo('payment')">收款紀錄 →</div></div>
         <div class="panel">
           <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
             <span id="dashIncomeAmt" style="font-family:var(--font-en);font-weight:300;font-size:24px;color:var(--rose-deep)">NT$ 0</span>
-            <span style="font-size:12px;color:var(--sub)">目標 NT$ 100,000</span>
+            <span id="dashIncomeTotal" style="font-size:12px;color:var(--sub)">訂單總額 NT$ 0</span>
           </div>
           <div class="bar-bg"><div class="bar-fill" id="dashIncomeBar" style="width:0%"></div></div>
-          <div class="bar-leg"><span id="dashIncomePct">已達成 0%</span><span id="dashIncomeRemain">尚差 NT$ 100,000</span></div>
+          <div class="bar-leg"><span id="dashIncomePct">已收 0%</span><span id="dashIncomeRemain">待收 NT$ 0</span></div>
         </div>
       </div>
     </div>
@@ -497,7 +511,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
     <div class="pay-topbar">
       <div class="topbar-row">
         <div class="topbar-title">收款總覽</div>
-        <div style="display:flex;align-items:center;gap:6px">
+        <div id="payMonthNavWrap" style="display:none;align-items:center;gap:6px">
           <div class="mnav-btn" onclick="payChangeMonth(-1)">‹</div>
           <span id="payMonthLabel" style="font-size:13px;font-weight:400;color:var(--sub)"></span>
           <div class="mnav-btn" onclick="payChangeMonth(1)">›</div>
@@ -513,10 +527,14 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
       <div class="ftab" onclick="setPayFilter(this,'unpaid')">未付款</div>
       <div class="ftab" onclick="setPayFilter(this,'deposit')">已付訂金</div>
       <div class="ftab" onclick="setPayFilter(this,'paid')">已付清</div>
+      <div class="ftab" onclick="setPayFilter(this,'history')">歷史紀錄</div>
     </div>
-    <div class="page-scroll" style="padding-bottom:calc(var(--nav-h) + 16px)">
-      <div class="sum-grid" id="paySummary"></div>
-      <div style="padding:12px 16px 0" id="payList"></div>
+    <div class="pay-content-wrap">
+      <div class="pay-scroll" id="payScroll">
+        <div class="sum-grid" id="paySummary"></div>
+        <div id="payList"></div>
+      </div>
+      <div class="month-rail" id="monthRail"></div>
     </div>
   </div>
 
@@ -799,7 +817,7 @@ let tags=[
 ];
 let nextTagId=15;
 
-const clients=[
+let clients=[
   {id:1,name:'林怡君',phone:'0912-345-678',skin:['敏感肌'],allergy:'含酒精產品',style:'韓系光澤感',note:'習慣早到，請提前準備',repeat:false,orders:[{date:'2025-10-18',service:'新娘整體造型',loc:'晶華酒店 B2'}]},
   {id:2,name:'陳雅婷',phone:'0923-456-789',skin:['油性'],allergy:'',style:'韓系光澤感',note:'',repeat:true,orders:[{date:'2025-10-18',service:'婚前試妝',loc:'工作室'},{date:'2024-08-10',service:'彩妝服務',loc:'寫真棚'}]},
   {id:3,name:'王小芸',phone:'0934-567-890',skin:['混合性'],allergy:'',style:'自然清透感',note:'',repeat:false,orders:[{date:'2025-10-22',service:'彩妝服務',loc:'寫真攝影棚'}]},
@@ -820,7 +838,7 @@ function navTo(page){
   if(navEl)navEl.classList.add('active');
   // close any open overlays
   document.querySelectorAll('.sheet-bg.show,.exp-modal-bg.show,.manage-modal-bg.show').forEach(el=>el.classList.remove('show'));
-  if(page==='dashboard'){renderDashToday();renderDashStats();}renderDashStats();
+  if(page==='dashboard'){renderDashToday();renderDashStats();}
   if(page==='calendar')renderCalendar();
   if(page==='payment')renderPayment();
   if(page==='clients')renderClients();
@@ -847,7 +865,17 @@ const reviewData={
   'ri-2':{clientName:'陳怡君',phone:'0923-456-789',serviceBlocks:[{service:'婚前試妝',date:'2025-12-20',time:'13:00',loc:'工作室',people:'僅新娘',peopleNote:'',total:'',deposit:''}],skin:['油性'],allergy:'',style:'自然清透感',note:''},
 };
 
+let currentReviewId=null;
+
 function confirmReview(id,name){
+  currentReviewId=id;
+  // mark review item as "processing" immediately
+  const el=document.getElementById(id);
+  if(el){
+    el.style.opacity='0.55';el.style.pointerEvents='none';
+    el.querySelector('.ri-actions').innerHTML=`<div style="grid-column:span 2;text-align:center;font-size:13px;color:var(--sub);padding:8px;background:var(--warm);border-radius:9px"><i class="ti ti-loader" style="margin-right:5px"></i>請完成新增訂單表單…</div>`;
+  }
+  updateReviewCountBadge();
   // close review sheet first
   closeSheet('reviewSheet');
   // pre-fill addOrder form with review data
@@ -876,11 +904,33 @@ function confirmReview(id,name){
     content.insertBefore(notice, content.firstChild);
   }, 50);
 }
+
+function updateReviewCountBadge(){
+  const reviewCount=document.querySelectorAll('#reviewList .review-item').length -
+    document.querySelectorAll('#reviewList .review-item[style*="opacity"]').length;
+  const badge=document.getElementById('reviewCount');
+  if(badge)badge.textContent=reviewCount;
+  // hide banner entirely if none left
+  const banner=document.querySelector('.review-banner');
+  if(banner)banner.style.display=reviewCount>0?'flex':'none';
+}
+
+function renderReviewItemActions(id){
+  const el=document.getElementById(id);
+  if(!el)return;
+  const name=el.querySelector('.ri-name').textContent;
+  el.querySelector('.ri-actions').innerHTML=`
+    <div class="ri-btn danger" onclick="rejectReview('${id}')"><i class="ti ti-x"></i> 婉拒</div>
+    <div class="ri-btn primary" onclick="confirmReview('${id}','${name}')"><i class="ti ti-check"></i> 建立訂單</div>
+  `;
+}
+
 function rejectReview(id){
   const el=document.getElementById(id);
   const name=el.querySelector('.ri-name').textContent;
   el.style.opacity='0.5';el.style.pointerEvents='none';
   el.querySelector('.ri-actions').innerHTML=`<div style="grid-column:span 2;text-align:center;font-size:13px;color:var(--sub);padding:8px;background:var(--warm);border-radius:9px">${name} 的申請已婉拒</div>`;
+  updateReviewCountBadge();
 }
 
 // ============================================================
@@ -893,8 +943,8 @@ function rejectReview(id){
 })();
 
 function renderDashStats(){
-  // 本月訂單數 (use the demo "current month" = Oct 2025 to match calendar prototype data)
-  const refDate=new Date(2025,9,18); // Oct 18 2025 (demo "today")
+  // 本月訂單數 - 使用裝置真實日期
+  const refDate=new Date();
   const y=refDate.getFullYear(),m=refDate.getMonth();
   const monthOrders=orders.filter(o=>{const d=new Date(o.date);return d.getFullYear()===y&&d.getMonth()===m;});
   const totalRecv=monthOrders.reduce((s,o)=>s+calcRecv(o),0);
@@ -912,11 +962,16 @@ function renderDashStats(){
     <div class="stat"><div class="stat-l">待收尾款</div><div class="stat-v warn">${pendingFinal}</div><div class="stat-s"><span class="dot" style="background:var(--unpaid-dot)"></span>${pendingFinal>0?'需催收':'無待收'}</div></div>
   `;
 
-  // income progress bar
-  document.getElementById('dashIncomeAmt').textContent='NT$ '+totalRecv.toLocaleString();
-  document.getElementById('dashIncomeBar').style.width=pct+'%';
-  document.getElementById('dashIncomePct').textContent='已達成 '+pct+'%';
-  document.getElementById('dashIncomeRemain').textContent='尚差 NT$ '+Math.max(0,goal-totalRecv).toLocaleString();
+  // income progress bar - ALL orders (across all dates, current/future included)
+  const totalRecvAll=orders.reduce((s,o)=>s+calcRecv(o),0);
+  const totalAmountAll=orders.reduce((s,o)=>s+(o.final_amt||0),0);
+  const totalPendAll=Math.max(0,totalAmountAll-totalRecvAll);
+  const pctAll=totalAmountAll>0?Math.round(totalRecvAll/totalAmountAll*100):0;
+  document.getElementById('dashIncomeAmt').textContent='NT$ '+totalRecvAll.toLocaleString();
+  document.getElementById('dashIncomeTotal').textContent='訂單總額 NT$ '+totalAmountAll.toLocaleString();
+  document.getElementById('dashIncomeBar').style.width=pctAll+'%';
+  document.getElementById('dashIncomePct').textContent='已收 '+pctAll+'%';
+  document.getElementById('dashIncomeRemain').textContent='待收 NT$ '+totalPendAll.toLocaleString();
 
   // recent orders (latest 3 by date desc)
   const recent=[...orders].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,3);
@@ -940,9 +995,7 @@ function renderDashStats(){
 function renderDashToday(){
   const today=new Date();
   const ds=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
-  // use demo date for prototype
-  const demoDs='2025-10-18';
-  const todayOrders=orders.filter(o=>o.date===demoDs).sort((a,b)=>a.time.localeCompare(b.time));
+  const todayOrders=orders.filter(o=>o.date===ds).sort((a,b)=>a.time.localeCompare(b.time));
   const COLOR={'新娘整體造型':'','彩妝服務':'g','精緻韓系霧眉設計':'amber','婚前試妝':'m'};
   const el=document.getElementById('dashTodayList');
   if(!el)return;
@@ -977,8 +1030,8 @@ function dashOpenDetail(id){
 // ============================================================
 // CALENDAR
 // ============================================================
-let calDate=new Date(2025,9,1);
-let calSelDate='2025-10-18';
+let calDate=new Date();
+let calSelDate=(()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;})();
 let calDetailTaskId=null;
 
 function calChangeMonth(d){calDate.setMonth(calDate.getMonth()+d);calSelDate=null;document.getElementById('dayDetail').innerHTML='';renderCalendar();}
@@ -1081,13 +1134,24 @@ function markPaidFromSheet(){
 // ============================================================
 // PAYMENT
 // ============================================================
-let payMonth={y:2025,m:9};
+let payMonth=(()=>{const d=new Date();return {y:d.getFullYear(),m:d.getMonth()};})();
 let payTab='income';
 let payFilter='all';
 
 function payChangeMonth(d){payMonth.m+=d;if(payMonth.m>11){payMonth.m=0;payMonth.y++;}if(payMonth.m<0){payMonth.m=11;payMonth.y--;}document.getElementById('payMonthLabel').textContent=`${payMonth.y} 年 ${payMonth.m+1} 月`;renderPayment();}
-function setPayTab(el,t){document.querySelectorAll('.pay-tab').forEach(x=>x.classList.remove('on'));el.classList.add('on');payTab=t;document.getElementById('payFilterTabs').style.display=t==='income'?'flex':'none';renderPayment();}
+function setPayTab(el,t){
+  document.querySelectorAll('.pay-tab').forEach(x=>x.classList.remove('on'));
+  el.classList.add('on');payTab=t;
+  document.getElementById('payFilterTabs').style.display=t==='income'?'flex':'none';
+  document.getElementById('payMonthNavWrap').style.display=t==='expense'?'flex':'none';
+  document.getElementById('monthRail').style.display=t==='income'?'flex':'none';
+  document.getElementById('payScroll').style.paddingRight=t==='income'?'38px':'16px';
+  renderPayment();
+}
 function setPayFilter(el,f){document.querySelectorAll('.pay-filter-tabs .ftab').forEach(x=>x.classList.remove('on'));el.classList.add('on');payFilter=f;renderPayment();}
+
+function getToday(){const d=new Date();d.setHours(0,0,0,0);return d;}
+function isHistorical(o){return o.pay==='paid'&&new Date(o.date)<getToday();}
 
 function getMonthOrders(){return orders.filter(o=>{const d=new Date(o.date);return d.getFullYear()===payMonth.y&&d.getMonth()===payMonth.m;});}
 function getMonthExpenses(){return expenses.filter(e=>{const d=new Date(e.date);return d.getFullYear()===payMonth.y&&d.getMonth()===payMonth.m;});}
@@ -1104,54 +1168,144 @@ function calcPend(o){
 
 function renderPayment(){
   document.getElementById('payMonthLabel').textContent=`${payMonth.y} 年 ${payMonth.m+1} 月`;
-  const mo=getMonthOrders(),me=getMonthExpenses();
-  const totalRecv=mo.reduce((s,o)=>s+calcRecv(o),0);
-  const totalPend=mo.reduce((s,o)=>s+calcPend(o),0);
+
+  if(payTab==='income'){
+    renderPaymentIncome();
+  } else {
+    renderPaymentExpense();
+  }
+}
+
+function renderPaymentIncome(){
+  const all=[...orders];
+  const totalRecvAll=all.reduce((s,o)=>s+calcRecv(o),0);
+  const totalPendAll=all.reduce((s,o)=>s+calcPend(o),0);
+  const activeOrders=all.filter(o=>!isHistorical(o));
+  const historyOrders=all.filter(o=>isHistorical(o));
+
+  // summary cards
+  document.getElementById('paySummary').innerHTML=`
+    <div class="sum-card"><div class="sum-l">累計已收</div><div class="sum-v">$${totalRecvAll.toLocaleString()}</div><div class="stat-s"><span class="dot" style="background:var(--sage)"></span>共 ${all.length} 筆訂單</div></div>
+    <div class="sum-card"><div class="sum-l">待收總額</div><div class="sum-v" style="color:var(--rose)">$${totalPendAll.toLocaleString()}</div><div class="stat-s"><span class="dot" style="background:var(--deposit-dot)"></span>${all.filter(o=>o.pay!=='paid').length} 筆待處理</div></div>
+    <div class="sum-card"><div class="sum-l">進行中訂單</div><div class="sum-v">${activeOrders.length}</div><div class="stat-s"><span class="dot" style="background:var(--sage)"></span>現在／未來</div></div>
+    <div class="sum-card"><div class="sum-l">歷史紀錄</div><div class="sum-v" style="color:var(--sub)">${historyOrders.length}</div><div class="stat-s"><span class="dot" style="background:var(--paid-dot)"></span>已付清・已過期</div></div>
+  `;
+
+  // determine list based on filter
+  let list;
+  if(payFilter==='history'){
+    list=historyOrders;
+  }else{
+    list=activeOrders;
+    if(payFilter!=='all')list=list.filter(o=>o.pay===payFilter);
+  }
+  list=[...list].sort((a,b)=>new Date(a.date)-new Date(b.date));
+
+  const listEl=document.getElementById('payList');
+  if(!list.length){
+    listEl.innerHTML='<div style="text-align:center;padding:32px 0;color:var(--sub);font-size:13px">沒有符合的收款紀錄</div>';
+    document.getElementById('monthRail').innerHTML='';
+    return;
+  }
+
+  // group by year-month
+  const groups={};
+  list.forEach(o=>{
+    const d=new Date(o.date);
+    const key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    if(!groups[key])groups[key]=[];
+    groups[key].push(o);
+  });
+  const groupKeys=Object.keys(groups).sort();
+
+  listEl.innerHTML=groupKeys.map(key=>{
+    const [y,m]=key.split('-');
+    const items=groups[key];
+    return `<div class="pay-section-head" id="pay-sec-${key}">${y} 年 ${parseInt(m)} 月<span class="history-badge" style="margin-left:8px">${items.length} 筆</span></div>`+
+      items.map(o=>{
+        const pend=calcPend(o),recv=calcRecv(o);
+        const hist=isHistorical(o);
+        return`<div class="pcard" style="${hist?'opacity:0.75':''}">
+          <div class="pcard-accent ${o.pay}"></div>
+          <div class="pcard-inner">
+            <div class="pcard-top"><div><div class="pcard-name">${o.name}</div><div class="pcard-svc">${svcLabel(o.service)}</div></div><span class="badge badge-${o.pay}">${PAY_LABEL[o.pay]}</span></div>
+            <div class="amt-row">
+              <div class="amt-box"><div class="amt-label">待收</div><div class="amt-val ${pend>0?'amber':'green'}">$${pend.toLocaleString()}</div></div>
+              <div class="amt-box"><div class="amt-label">已收</div><div class="amt-val ${recv>0?'green':'red'}">$${recv.toLocaleString()}</div></div>
+              <div class="amt-box"><div class="amt-label">總金額</div><div class="amt-val">$${o.final_amt.toLocaleString()}</div></div>
+            </div>
+            <div class="pcard-date"><i class="ti ti-calendar" style="font-size:12px"></i>${o.date}</div>
+            ${o.pay!=='paid'?`<div class="pcard-actions"><div class="pact-btn">提醒客戶</div><div class="pact-btn primary" onclick="openPayConfirm(${o.id},'list')">確認收款</div></div>`:''}
+          </div></div>`;
+      }).join('');
+  }).join('');
+
+  // build month rail
+  const MONTH_NAMES=['1','2','3','4','5','6','7','8','9','10','11','12'];
+  const rail=document.getElementById('monthRail');
+  rail.innerHTML=groupKeys.map(key=>{
+    const m=parseInt(key.split('-')[1]);
+    return `<div class="month-rail-item" data-key="pay-sec-${key}" onclick="scrollToPaySection('pay-sec-${key}')">${MONTH_NAMES[m-1]}月</div>`;
+  }).join('');
+
+  setupPayScrollSpy();
+}
+
+function scrollToPaySection(id){
+  const el=document.getElementById(id);
+  const container=document.getElementById('payScroll');
+  if(el&&container){
+    container.scrollTo({top:el.offsetTop-4,behavior:'smooth'});
+  }
+}
+
+let payScrollSpyAttached=false;
+function setupPayScrollSpy(){
+  const container=document.getElementById('payScroll');
+  if(!container)return;
+  highlightActiveMonth();
+  if(!payScrollSpyAttached){
+    container.addEventListener('scroll',()=>{highlightActiveMonth();});
+    payScrollSpyAttached=true;
+  }
+}
+function highlightActiveMonth(){
+  const container=document.getElementById('payScroll');
+  if(!container)return;
+  const headers=[...container.querySelectorAll('.pay-section-head')];
+  if(!headers.length)return;
+  const scrollTop=container.scrollTop;
+  let activeId=headers[0].id;
+  for(const h of headers){
+    if(h.offsetTop-8<=scrollTop+1)activeId=h.id;
+  }
+  document.querySelectorAll('.month-rail-item').forEach(item=>{
+    item.classList.toggle('active',item.dataset.key===activeId);
+  });
+}
+
+function renderPaymentExpense(){
+  const me=getMonthExpenses();
   const totalExp=me.reduce((s,e)=>s+e.amt,0);
   const totalOrderExp=me.filter(e=>e.type==='order').reduce((s,e)=>s+e.amt,0);
   const totalOpExp=me.filter(e=>e.type!=='order').reduce((s,e)=>s+e.amt,0);
-  const net=totalRecv-totalExp;
-  const goal=100000,pct=Math.min(Math.round(totalRecv/goal*100),100);
+  const mo=getMonthOrders();
+  const monthRecv=mo.reduce((s,o)=>s+calcRecv(o),0);
+  const net=monthRecv-totalExp;
   document.getElementById('paySummary').innerHTML=`
-    <div class="sum-card"><div class="sum-l">本月收入</div><div class="sum-v">$${totalRecv.toLocaleString()}</div><div class="stat-s"><span class="dot" style="background:var(--sage)"></span>${mo.filter(o=>o.pay==='paid').length} 筆已付清</div></div>
-    <div class="sum-card expense-card"><div class="sum-l">本月支出</div><div class="sum-v red">$${totalExp.toLocaleString()}</div><div class="stat-s"><span class="dot" style="background:var(--unpaid-dot)"></span>訂單 $${totalOrderExp.toLocaleString()} · 營運 $${totalOpExp.toLocaleString()}</div></div>
-    <div class="sum-card net-card"><div class="sum-l">淨收入</div><div class="sum-v ${net>=0?'green':'red'}">$${net.toLocaleString()}</div><div class="stat-s"><span class="dot" style="background:${net>=0?'var(--sage)':'var(--unpaid-dot)'}"></span>${net>=0?'收支正常':'本月虧損'}</div></div>
-    <div class="sum-card"><div class="sum-l">待收金額</div><div class="sum-v" style="color:var(--rose)">$${totalPend.toLocaleString()}</div><div class="stat-s"><span class="dot" style="background:var(--deposit-dot)"></span>${mo.filter(o=>o.pay!=='paid').length} 筆待處理</div></div>
-    <div class="sum-card full" style="margin-top:0">
-      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px"><span style="font-size:12px;font-weight:500;color:var(--sub)">本月目標進度</span><span style="font-size:12px;color:var(--sub)">目標 NT$ ${goal.toLocaleString()}</span></div>
-      <div class="bar-bg"><div class="bar-fill" style="width:${pct}%"></div></div>
-      <div class="bar-leg"><span>已達成 ${pct}%</span><span>尚差 $${(goal-totalRecv).toLocaleString()}</span></div>
-    </div>`;
+    <div class="sum-card expense-card"><div class="sum-l">本月支出</div><div class="sum-v red">$${totalExp.toLocaleString()}</div><div class="stat-s"><span class="dot" style="background:var(--unpaid-dot)"></span>${me.length} 筆支出</div></div>
+    <div class="sum-card"><div class="sum-l">訂單支出</div><div class="sum-v">$${totalOrderExp.toLocaleString()}</div><div class="stat-s"><span class="dot" style="background:var(--deposit-dot)"></span>${me.filter(e=>e.type==='order').length} 筆</div></div>
+    <div class="sum-card"><div class="sum-l">營運支出</div><div class="sum-v">$${totalOpExp.toLocaleString()}</div><div class="stat-s"><span class="dot" style="background:var(--unpaid-dot)"></span>${me.filter(e=>e.type!=='order').length} 筆</div></div>
+    <div class="sum-card net-card"><div class="sum-l">本月淨收入</div><div class="sum-v ${net>=0?'green':'red'}">$${net.toLocaleString()}</div><div class="stat-s"><span class="dot" style="background:${net>=0?'var(--sage)':'var(--unpaid-dot)'}"></span>${net>=0?'收支正常':'本月虧損'}</div></div>
+  `;
   const list=document.getElementById('payList');
-  if(payTab==='income'){
-    const filtered=mo.filter(o=>payFilter==='all'||o.pay===payFilter);
-    if(!filtered.length){list.innerHTML='<div style="text-align:center;padding:32px 0;color:var(--sub);font-size:13px">沒有符合的收款紀錄</div>';return;}
-    list.innerHTML=filtered.map(o=>{
-      const pend=calcPend(o),recv=calcRecv(o);
-      return`<div class="pcard">
-        <div class="pcard-accent ${o.pay}"></div>
-        <div class="pcard-inner">
-          <div class="pcard-top"><div><div class="pcard-name">${o.name}</div><div class="pcard-svc">${svcLabel(o.service)}</div></div><span class="badge badge-${o.pay}">${PAY_LABEL[o.pay]}</span></div>
-          <div class="amt-row">
-            <div class="amt-box"><div class="amt-label">待收</div><div class="amt-val ${pend>0?'amber':'green'}">$${pend.toLocaleString()}</div></div>
-            <div class="amt-box"><div class="amt-label">已收</div><div class="amt-val ${recv>0?'green':'red'}">$${recv.toLocaleString()}</div></div>
-            <div class="amt-box"><div class="amt-label">總金額</div><div class="amt-val">$${o.final_amt.toLocaleString()}</div></div>
-          </div>
-          <div class="pcard-date"><i class="ti ti-calendar" style="font-size:12px"></i>${o.date}</div>
-          ${o.pay!=='paid'?`<div class="pcard-actions"><div class="pact-btn">提醒客戶</div><div class="pact-btn primary" onclick="openPayConfirm(${o.id},'list')">確認收款</div></div>`:''}
-        </div></div>`;
-    }).join('');
-  } else {
-    const orderExps=me.filter(e=>e.type==='order');
-    const opExps=me.filter(e=>e.type!=='order');
-    const totalOrderExp=orderExps.reduce((s,e)=>s+e.amt,0);
-    const totalOpExp=opExps.reduce((s,e)=>s+e.amt,0);
-    const expCard=(e)=>`<div class="ecard"><div class="ecard-accent" style="background:${e.type==='order'?'var(--deposit-dot)':'var(--unpaid-dot)'}"></div><div class="ecard-inner"><div class="ecard-top"><div><div class="ecard-name">${e.name}</div><div class="ecard-cat">${e.cat}${e.type==='order'&&e.orderId?'・'+( orders.find(o=>o.id===e.orderId)||{name:'—'}).name:''}</div></div><div class="ecard-amt">- $${e.amt.toLocaleString()}</div></div><div style="font-size:12px;color:var(--sub);margin-top:6px;display:flex;align-items:center;gap:4px"><i class="ti ti-calendar" style="font-size:12px"></i>${e.date}</div></div></div>`;
-    list.innerHTML=`<button class="add-exp-btn" onclick="openExpModal()"><i class="ti ti-plus"></i>新增支出</button>`+
-      (me.length===0?'<div style="text-align:center;padding:24px 0;color:var(--sub);font-size:13px">這個月還沒有支出紀錄</div>':
-      (orderExps.length?`<div style="font-size:11px;font-weight:500;letter-spacing:0.14em;color:var(--rose);margin-bottom:8px;display:flex;justify-content:space-between"><span>訂單支出</span><span style="font-weight:400;color:var(--sub)">共 - $${totalOrderExp.toLocaleString()}</span></div>`+orderExps.map(expCard).join(''):'')
-      +(opExps.length?`<div style="font-size:11px;font-weight:500;letter-spacing:0.14em;color:var(--rose);margin:12px 0 8px;display:flex;justify-content:space-between"><span>營運支出</span><span style="font-weight:400;color:var(--sub)">共 - $${totalOpExp.toLocaleString()}</span></div>`+opExps.map(expCard).join(''):''));
-  }
+  const orderExps=me.filter(e=>e.type==='order');
+  const opExps=me.filter(e=>e.type!=='order');
+  const expCard=(e)=>`<div class="ecard"><div class="ecard-accent" style="background:${e.type==='order'?'var(--deposit-dot)':'var(--unpaid-dot)'}"></div><div class="ecard-inner"><div class="ecard-top"><div><div class="ecard-name">${e.name}</div><div class="ecard-cat">${e.cat}${e.type==='order'&&e.orderId?'・'+( orders.find(o=>o.id===e.orderId)||{name:'—'}).name:''}</div></div><div class="ecard-amt">- $${e.amt.toLocaleString()}</div></div><div style="font-size:12px;color:var(--sub);margin-top:6px;display:flex;align-items:center;gap:4px"><i class="ti ti-calendar" style="font-size:12px"></i>${e.date}</div></div></div>`;
+  list.innerHTML=`<button class="add-exp-btn" onclick="openExpModal()"><i class="ti ti-plus"></i>新增支出</button>`+
+    (me.length===0?'<div style="text-align:center;padding:24px 0;color:var(--sub);font-size:13px">這個月還沒有支出紀錄</div>':
+    (orderExps.length?`<div style="font-size:11px;font-weight:500;letter-spacing:0.14em;color:var(--rose);margin-bottom:8px;display:flex;justify-content:space-between"><span>訂單支出</span><span style="font-weight:400;color:var(--sub)">共 - $${totalOrderExp.toLocaleString()}</span></div>`+orderExps.map(expCard).join(''):'')
+    +(opExps.length?`<div style="font-size:11px;font-weight:500;letter-spacing:0.14em;color:var(--rose);margin:12px 0 8px;display:flex;justify-content:space-between"><span>營運支出</span><span style="font-weight:400;color:var(--sub)">共 - $${totalOpExp.toLocaleString()}</span></div>`+opExps.map(expCard).join(''):''));
 }
 
 function markPayFromList(id){
@@ -1351,6 +1505,17 @@ function openAddOrder(){
   renderAddSteps();renderAddForm();
 }
 function closeAddOrder(){
+  // if cancelled without submitting (addSuccess not shown) and came from a review item, revert it
+  const successShown=document.getElementById('addSuccess').style.display==='flex';
+  if(currentReviewId&&!successShown){
+    const el=document.getElementById(currentReviewId);
+    if(el){
+      el.style.opacity='';el.style.pointerEvents='';
+      renderReviewItemActions(currentReviewId);
+    }
+    currentReviewId=null;
+    updateReviewCountBadge();
+  }
   document.getElementById('addOrderOverlay').classList.remove('show');
   navTo(prevPage);
 }
@@ -1564,6 +1729,15 @@ function addSubmit(){
   renderClients();
   renderDashStats();
   renderDashToday();
+  // finalize linked review item (if order came from a 待審核 form)
+  if(currentReviewId){
+    const el=document.getElementById(currentReviewId);
+    if(el){
+      el.querySelector('.ri-actions').innerHTML=`<div style="grid-column:span 2;text-align:center;font-size:13px;font-weight:500;color:var(--green);padding:8px;background:var(--green-bg);border-radius:9px">✓ 訂單已建立</div>`;
+    }
+    currentReviewId=null;
+    updateReviewCountBadge();
+  }
 }
 
 // PAY CONFIRM
@@ -1798,7 +1972,125 @@ document.addEventListener('click',(e)=>{
   }
 });
 
-// ── Export backup as JSON file ──
+// ── Export Excel report (訂單/客戶/支出) ──
+function exportExcel(){
+  document.getElementById('avMenu').style.display='none';
+  if(typeof XLSX==='undefined'){
+    alert('Excel 匯出功能需要載入額外元件，請確認網路連線後再試一次');
+    return;
+  }
+  try{
+    const wb=XLSX.utils.book_new();
+
+    // 訂單 sheet
+    const orderRows=orders.map(o=>({
+      訂單編號:o.id,
+      預約編號:o.bookingId||'',
+      客戶姓名:o.name,
+      服務項目:o.service,
+      日期:o.date,
+      時間:o.time,
+      地點:o.loc,
+      服務人數:o.people,
+      人數備注:o.peopleNote||'',
+      膚質:(o.skin||[]).join('、'),
+      過敏成分:o.allergy||'',
+      風格偏好:o.style||'',
+      備注:o.note||'',
+      付款狀態:PAY_LABEL[o.pay]||o.pay,
+      總金額:o.final_amt,
+      訂金:o.deposit_amt||0,
+      已收金額:calcRecv(o),
+      待收金額:calcPend(o),
+      標籤:(o.tags||[]).join('、'),
+      服務狀態:o.status==='done'?'已完成':'進行中'
+    }));
+    const wsOrders=XLSX.utils.json_to_sheet(orderRows.length?orderRows:[{訂單編號:'',客戶姓名:'（無資料）'}]);
+    XLSX.utils.book_append_sheet(wb,wsOrders,'訂單');
+
+    // 客戶 sheet
+    const clientRows=clients.map(c=>({
+      姓名:c.name,
+      電話:c.phone||'',
+      膚質:(c.skin||[]).join('、'),
+      過敏成分:c.allergy||'',
+      風格偏好:c.style||'',
+      備注:c.note||'',
+      回頭客:c.repeat?'是':'否',
+      歷史訂單數:c.orders?c.orders.length:0,
+      最近服務日期:(c.orders&&c.orders[0])?c.orders[0].date:''
+    }));
+    const wsClients=XLSX.utils.json_to_sheet(clientRows.length?clientRows:[{姓名:'（無資料）'}]);
+    XLSX.utils.book_append_sheet(wb,wsClients,'客戶');
+
+    // 支出 sheet
+    const expenseRows=expenses.map(e=>({
+      項目:e.name,
+      分類:e.cat,
+      金額:e.amt,
+      日期:e.date,
+      支出類型:e.type==='order'?'訂單支出':'營運支出',
+      對應訂單:e.orderId?((orders.find(o=>o.id===e.orderId)||{}).name||''):''
+    }));
+    const wsExpenses=XLSX.utils.json_to_sheet(expenseRows.length?expenseRows:[{項目:'（無資料）'}]);
+    XLSX.utils.book_append_sheet(wb,wsExpenses,'支出');
+
+    const dateStr=new Date().toISOString().slice(0,10);
+    XLSX.writeFile(wb, `sian-report-${dateStr}.xlsx`);
+    showToast('已匯出 Excel 報表');
+  }catch(err){
+    alert('匯出 Excel 失敗：'+err.message);
+    console.error(err);
+  }
+}
+
+// ── Archive historical (paid + past) orders ──
+function archiveHistory(){
+  document.getElementById('avMenu').style.display='none';
+  const toArchive=orders.filter(o=>isHistorical(o));
+  if(!toArchive.length){
+    alert('目前沒有可封存的歷史訂單（已付清且日期已過去的訂單）');
+    return;
+  }
+  const years=[...new Set(toArchive.map(o=>new Date(o.date).getFullYear()))].sort();
+  const yearLabel=years.length===1?years[0]:`${years[0]}-${years[years.length-1]}`;
+  if(!confirm(`即將封存 ${toArchive.length} 筆已完成的歷史訂單（${yearLabel}）。\n\n封存後將：\n1. 下載封存檔案 sian-archive-${yearLabel}.json\n2. 從目前系統中移除這些訂單（客戶資料會保留）\n\n之後可用「匯入進度」開啟封存檔查看舊紀錄。\n\n確定要繼續嗎？`)){
+    return;
+  }
+  // export archive file
+  const archiveData={
+    type:'archive',
+    archivedAt:new Date().toISOString(),
+    orders:toArchive,
+    appName:'Sian 嫻美學 訂單管理系統 - 封存檔'
+  };
+  const json=JSON.stringify(archiveData, null, 2);
+  try{
+    const blob=new Blob([json],{type:'application/json;charset=utf-8'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download=`sian-archive-${yearLabel}.json`;
+    a.style.display='none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},100);
+  }catch(err){
+    alert('封存檔案下載失敗：'+err.message);
+    return;
+  }
+  // remove archived orders from active data
+  const archiveIds=new Set(toArchive.map(o=>o.id));
+  orders=orders.filter(o=>!archiveIds.has(o.id));
+  saveData();
+  renderCalendar();
+  renderPayment();
+  renderClients();
+  renderDashStats();
+  renderDashToday();
+  showToast(`已封存 ${toArchive.length} 筆訂單`);
+}
+
 function exportBackup(){
   document.getElementById('avMenu').style.display='none';
   const data={
@@ -1911,7 +2203,7 @@ loadData();
 renderCalendar();
 renderPayment();
 renderClients();
-renderDashToday();renderDashStats();
+renderDashToday();renderDashStats();updateReviewCountBadge();
 </script>
 </body>
 </html>
