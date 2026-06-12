@@ -773,6 +773,41 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
     </div>
   </div>
 
+  <!-- EDIT CLIENT SHEET -->
+  <div class="edit-sheet-bg" id="editClientSheet" onclick="bgClose(event,'editClientSheet')">
+    <div class="sheet" style="max-height:92%">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <div class="sheet-title" id="editClientSheetTitle">編輯客戶</div>
+        <span class="sheet-close" onclick="closeSheet('editClientSheet')"><i class="ti ti-x"></i></span>
+      </div>
+      <div class="sheet-body" id="editClientSheetBody"></div>
+      <div style="padding:14px 20px 0;border-top:0.5px solid var(--line);margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="sact" onclick="closeSheet('editClientSheet')">取消</div>
+        <div class="sact primary" onclick="saveEditClient()">儲存</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- REMINDER MESSAGE MODAL -->
+  <div class="exp-modal-bg" id="reminderModal" onclick="bgClose(event,'reminderModal')">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <div class="sheet-title">催款訊息</div>
+        <span class="sheet-close" onclick="closeSheet('reminderModal')"><i class="ti ti-x"></i></span>
+      </div>
+      <div class="sheet-body">
+        <div style="font-size:11px;color:var(--sub);margin-bottom:8px">可直接複製貼到 LINE 傳送給客戶</div>
+        <textarea id="reminderText" style="min-height:140px;line-height:1.8;font-size:13px" readonly></textarea>
+        <div class="sheet-actions" style="border:none;padding:0;margin-top:14px">
+          <div class="sact" onclick="closeSheet('reminderModal')">關閉</div>
+          <div class="sact primary" onclick="copyReminderText()"><i class="ti ti-copy"></i> 複製文字</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="toast" id="toast"></div>
 
 </div><!-- #app -->
@@ -1235,7 +1270,7 @@ function renderPaymentIncome(){
               <div class="amt-box"><div class="amt-label">總金額</div><div class="amt-val">$${o.final_amt.toLocaleString()}</div></div>
             </div>
             <div class="pcard-date"><i class="ti ti-calendar" style="font-size:12px"></i>${o.date}</div>
-            ${o.pay!=='paid'?`<div class="pcard-actions"><div class="pact-btn">提醒客戶</div><div class="pact-btn primary" onclick="openPayConfirm(${o.id},'list')">確認收款</div></div>`:''}
+            ${o.pay!=='paid'?`<div class="pcard-actions"><div class="pact-btn" onclick="openReminder(${o.id})">提醒客戶</div><div class="pact-btn primary" onclick="openPayConfirm(${o.id},'list')">確認收款</div></div>`:''}
           </div></div>`;
       }).join('');
   }).join('');
@@ -1460,7 +1495,7 @@ function openClientDetail(id){
       ${c.orders.map(o=>`<div class="hist-card"><div class="hist-top"><span class="hist-name">${svcLabel(o.service)}</span><span class="hist-date">${o.date}</span></div><div class="hist-meta"><i class="ti ti-map-pin" style="font-size:11px;margin-right:3px"></i>${o.loc}</div></div>`).join('')}
     </div>
     <div class="sheet-actions">
-      <div class="sact" onclick="closeSheet('clientDetailSheet')"><i class="ti ti-edit"></i> 編輯</div>
+      <div class="sact" onclick="openEditClientSheet(${c.id})"><i class="ti ti-edit"></i> 編輯</div>
       <div class="sact primary" onclick="openAddOrder();closeSheet('clientDetailSheet')"><i class="ti ti-calendar-plus"></i> 新增訂單</div>
     </div>`;
   document.getElementById('clientDetailSheet').classList.add('show');
@@ -1485,6 +1520,91 @@ function addTag(){
   renderAllTagsList();
 }
 function deleteTag(id){tags=tags.filter(t=>t.id!==id);saveData();renderAllTagsList();}
+
+// ── EDIT CLIENT ──
+let editClientId=null;
+function openEditClientSheet(id){
+  const c=clients.find(x=>x.id===id);
+  if(!c)return;
+  editClientId=id;
+  closeSheet('clientDetailSheet');
+  document.getElementById('editClientSheetTitle').textContent=c.name+'・編輯客戶';
+  document.getElementById('editClientSheetBody').innerHTML=`
+    <div class="field"><label class="fl">姓名</label><input type="text" id="ecName" value="${c.name}"></div>
+    <div class="field"><label class="fl">電話</label><input type="tel" id="ecPhone" value="${c.phone||''}" placeholder="0912-345-678"></div>
+    <div class="field"><label class="fl">膚質（可複選）</label>
+      <div class="chips" id="ecSkinChips">
+        ${SKINS.map(s=>`<div class="chip ${(c.skin||[]).includes(s)?'on':''}" onclick="ecToggleSkin('${s}')">${s}</div>`).join('')}
+      </div>
+    </div>
+    <div class="field"><label class="fl">過敏成分</label><input type="text" id="ecAllergy" value="${c.allergy||''}" placeholder="例：含酒精、防腐劑"></div>
+    <div class="field"><label class="fl">風格偏好</label>
+      <select id="ecStyle">
+        <option value="">未設定</option>
+        ${STYLES.map(s=>`<option ${c.style===s?'selected':''}>${s}</option>`).join('')}
+      </select>
+    </div>
+    <div class="field"><label class="fl">備注</label><textarea id="ecNote" style="min-height:80px" placeholder="客戶習慣、注意事項等…">${c.note||''}</textarea></div>
+  `;
+  document.getElementById('editClientSheet').classList.add('show');
+}
+function ecToggleSkin(s){
+  const c=clients.find(x=>x.id===editClientId);
+  if(!c)return;
+  if(!c.skin)c.skin=[];
+  const i=c.skin.indexOf(s);
+  i>-1?c.skin.splice(i,1):c.skin.push(s);
+  document.getElementById('ecSkinChips').innerHTML=SKINS.map(sv=>`<div class="chip ${c.skin.includes(sv)?'on':''}" onclick="ecToggleSkin('${sv}')">${sv}</div>`).join('');
+}
+function saveEditClient(){
+  const c=clients.find(x=>x.id===editClientId);
+  if(!c)return;
+  c.name=document.getElementById('ecName').value.trim()||c.name;
+  c.phone=document.getElementById('ecPhone').value.trim();
+  c.allergy=document.getElementById('ecAllergy').value.trim();
+  c.style=document.getElementById('ecStyle').value;
+  c.note=document.getElementById('ecNote').value.trim();
+  // skin already updated live via ecToggleSkin
+  saveData();
+  closeSheet('editClientSheet');
+  renderClients();
+  showToast('已更新客戶資料');
+}
+
+// ── REMINDER MESSAGE ──
+let reminderOrderId=null;
+function openReminder(id){
+  const o=orders.find(x=>x.id===id);
+  if(!o)return;
+  reminderOrderId=id;
+  const pend=calcPend(o);
+  const d=new Date(o.date);
+  const dateStr=`${d.getMonth()+1}/${d.getDate()}`;
+  let msg;
+  if(o.pay==='unpaid'){
+    msg=`您好，提醒您 ${dateStr}「${svcLabel(o.service)}」的預約訂金 NT$${(o.deposit_amt||Math.round(o.final_amt*0.3)).toLocaleString()} 尚未收到，請於方便時完成轉帳，謝謝您！\n— Sian 嫻美學`;
+  }else{
+    msg=`您好，提醒您 ${dateStr}「${svcLabel(o.service)}」的尾款 NT$${pend.toLocaleString()} 尚未收到，麻煩於服務當天或之前完成付款，謝謝您！\n— Sian 嫻美學`;
+  }
+  document.getElementById('reminderText').value=msg;
+  document.getElementById('reminderModal').classList.add('show');
+}
+function copyReminderText(){
+  const ta=document.getElementById('reminderText');
+  ta.select();
+  ta.setSelectionRange(0,99999);
+  try{
+    navigator.clipboard.writeText(ta.value).then(()=>{
+      showToast('已複製訊息文字');
+    }).catch(()=>{
+      document.execCommand('copy');
+      showToast('已複製訊息文字');
+    });
+  }catch(e){
+    document.execCommand('copy');
+    showToast('已複製訊息文字');
+  }
+}
 
 // ADD ORDER
 let addStep=1;
