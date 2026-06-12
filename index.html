@@ -423,7 +423,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
               <div onclick="event.stopPropagation();triggerImport()" style="padding:12px 16px;font-size:13px;font-weight:400;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:8px"><i class="ti ti-upload"></i>匯入進度</div>
             </div>
           </div>
-          <input type="file" id="importFileInput" accept="application/json" style="display:none" onchange="importBackup(event)">
+          <input type="file" id="importFileInput" accept=".json,application/json,text/plain,*/*" style="display:none" onchange="importBackup(event)">
         </div>
       </div>
     </div>
