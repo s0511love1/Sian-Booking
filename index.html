@@ -1808,17 +1808,38 @@ function exportBackup(){
     appName:'Sian 嫻美學 訂單管理系統'
   };
   const json=JSON.stringify(data, null, 2);
-  const blob=new Blob([json],{type:'application/json'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
   const dateStr=new Date().toISOString().slice(0,10);
-  a.href=url;
-  a.download=`sian-backup-${dateStr}.json`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-  showToast('已匯出備份檔案');
+  const filename=`sian-backup-${dateStr}.json`;
+
+  try{
+    // Primary method: Blob URL (works on most desktop/Android browsers)
+    const blob=new Blob([json],{type:'application/json;charset=utf-8'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download=filename;
+    a.style.display='none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(()=>{
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    },100);
+    showToast('已匯出備份檔案');
+  }catch(err){
+    // Fallback: open in new tab as data URI (for restrictive mobile webviews)
+    try{
+      const dataUri='data:application/json;charset=utf-8,'+encodeURIComponent(json);
+      const win=window.open(dataUri,'_blank');
+      if(!win){
+        // last resort: show JSON in a prompt for manual copy
+        prompt('請手動複製以下內容並儲存為 .json 檔：', json);
+      }
+      showToast('已開啟備份內容，請手動儲存');
+    }catch(err2){
+      alert('匯出失敗：'+err2.message);
+    }
+  }
 }
 
 // ── Trigger file picker for import ──
@@ -1833,10 +1854,26 @@ function importBackup(event){
   if(!file)return;
   const reader=new FileReader();
   reader.onload=function(e){
+    let raw=e.target.result;
     try{
-      const data=JSON.parse(e.target.result);
-      if(!data.orders||!Array.isArray(data.orders)){
-        alert('檔案格式不正確，請確認是從本系統匯出的備份檔');
+      // Strip BOM (byte order mark) that some mobile share/save flows add
+      if(raw.charCodeAt(0)===0xFEFF)raw=raw.slice(1);
+      // Trim whitespace/newlines that could be appended
+      raw=raw.trim();
+
+      let data;
+      try{
+        data=JSON.parse(raw);
+      }catch(parseErr){
+        // Show a preview of the content to help debug what was actually read
+        const preview=raw.slice(0,150).replace(/\n/g,' ');
+        alert('讀取檔案失敗：JSON 格式錯誤\n\n檔案開頭內容：\n'+preview+(raw.length>150?'...':''));
+        console.error(parseErr);
+        return;
+      }
+
+      if(!data||typeof data!=='object'||!Array.isArray(data.orders)){
+        alert('檔案格式不正確：找不到訂單資料 (orders)，請確認是從本系統匯出的備份檔');
         return;
       }
       if(!confirm('匯入將會覆蓋目前所有資料（訂單、客戶、支出、標籤），確定要繼續嗎？')){
@@ -1846,9 +1883,9 @@ function importBackup(event){
       expenses=data.expenses||[];
       tags=data.tags||[];
       clients=data.clients||[];
-      nextOrderId=data.nextOrderId||(Math.max(0,...orders.map(o=>o.id))+1);
-      nextExpId=data.nextExpId||(Math.max(0,...expenses.map(e=>e.id))+1);
-      nextTagId=data.nextTagId||(Math.max(0,...tags.map(t=>t.id))+1);
+      nextOrderId=data.nextOrderId||(orders.length?Math.max(...orders.map(o=>o.id))+1:1);
+      nextExpId=data.nextExpId||(expenses.length?Math.max(...expenses.map(e=>e.id))+1:1);
+      nextTagId=data.nextTagId||(tags.length?Math.max(...tags.map(t=>t.id))+1:1);
       saveData();
       // refresh all views
       renderCalendar();
@@ -1858,11 +1895,14 @@ function importBackup(event){
       renderDashToday();
       showToast('已匯入備份資料');
     }catch(err){
-      alert('讀取檔案失敗，請確認檔案格式正確');
+      alert('匯入發生未知錯誤：'+err.message);
       console.error(err);
     }
   };
-  reader.readAsText(file);
+  reader.onerror=function(){
+    alert('無法讀取此檔案，請確認檔案存在且可存取');
+  };
+  reader.readAsText(file, 'UTF-8');
   event.target.value=''; // reset so same file can be re-selected later
 }
 
