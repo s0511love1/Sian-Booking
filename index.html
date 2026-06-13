@@ -1,18 +1,22 @@
-<!-- ============================================================
-     Sian 嫻美學 後台管理系統
-     版本：Ver.01
-     建立日期：2026-06-12
-     說明：單一 HTML 檔案，包含儀表板/日曆排程/收款總覽/客戶管理/
-           新增訂單表單，資料儲存於 LocalStorage，
-           可匯出/匯入 JSON 備份、匯出 Excel 報表、封存歷史訂單。
-     部署：GitHub + Vercel（檔名需改為 index.html）
-     ============================================================ -->
+
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Sian 嫻美學 · 訂單管理系統</title>
+
+<!-- iOS：加入主畫面後以獨立 App 模式開啟（無 Safari 介面） -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Sian 嫻美學">
+<meta name="mobile-web-app-capable" content="yes">
+
+<!-- 主畫面圖示（玫瑰色底 + S 字樣，180x180） -->
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%236B5C58'/%3E%3Ctext x='90' y='118' font-family='Georgia,serif' font-size='100' fill='%23F2EBE6' text-anchor='middle'%3ES%3C/text%3E%3C/svg%3E">
+
+<!-- 主題色（狀態列、瀏覽器UI配色） -->
+<meta name="theme-color" content="#F7F2EF">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
