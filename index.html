@@ -36,7 +36,7 @@
   --unpaid-bg:#FEF2F2;--unpaid-border:#F87171;--unpaid-dot:#F87171;
   --deposit-bg:#FFFBEB;--deposit-border:#FCD34D;--deposit-dot:#FCD34D;
   --paid-bg:#F0FDF4;--paid-border:#A8B5A2;--paid-dot:#A8B5A2;
-  --nav-h:64px;
+  --nav-h:54px;
   --safe-bottom:env(safe-area-inset-bottom, 0px);
   --safe-top:env(safe-area-inset-top, 0px);
   --font-en:'Cormorant Garamond',serif;
@@ -74,13 +74,13 @@ body{font-family:var(--font-main);font-size:14px;color:var(--text)}
 /* ============================================================
    BOTTOM NAV
    ============================================================ */
-.bottom-nav{position:absolute;bottom:0;left:0;right:0;height:calc(var(--nav-h) + var(--safe-bottom));background:var(--white);border-top:0.5px solid var(--line);display:flex;align-items:flex-start;padding-top:8px;padding-bottom:var(--safe-bottom);z-index:100}
+.bottom-nav{position:absolute;bottom:0;left:0;right:0;height:calc(var(--nav-h) + var(--safe-bottom));background:var(--white);border-top:0.5px solid var(--line);display:flex;align-items:flex-start;padding-top:6px;padding-bottom:var(--safe-bottom);z-index:100}
 .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;color:var(--sub);transition:color 0.15s;padding-top:2px}
 .nav-item.active{color:var(--rose-deep)}
 .nav-item i{font-size:21px}
 .nav-item span{font-size:10px;font-weight:500}
 .nav-fab-wrap{flex:1;display:flex;justify-content:center;align-items:flex-start}
-.nav-fab{width:50px;height:50px;border-radius:50%;background:var(--rose-deep);display:flex;align-items:center;justify-content:center;color:var(--white);font-size:24px;margin-top:-18px;border:3px solid var(--warm);cursor:pointer;transition:opacity 0.15s;flex-shrink:0}
+.nav-fab{width:48px;height:48px;border-radius:50%;background:var(--rose-deep);display:flex;align-items:center;justify-content:center;color:var(--white);font-size:22px;margin-top:-16px;border:3px solid var(--warm);cursor:pointer;transition:opacity 0.15s;flex-shrink:0}
 .nav-fab:hover{opacity:0.85}
 
 /* ============================================================
@@ -426,6 +426,21 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 </style>
 </head>
 <body>
+<div id="splashScreen" style="
+  position:fixed;inset:0;
+  background:#F7F2EF;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  z-index:9999;
+  transition:opacity 0.4s ease;
+">
+  <div style="font-family:'Georgia',serif;font-weight:300;font-size:48px;letter-spacing:0.2em;color:#6B5C58;margin-bottom:10px">Sian</div>
+  <div style="font-size:13px;font-weight:400;letter-spacing:0.36em;color:#C4A49A">嫻 美 學</div>
+  <div style="margin-top:40px;width:36px;height:2px;background:#DDD0CB;border-radius:1px;overflow:hidden">
+    <div id="splashBar" style="width:0%;height:100%;background:#C4A49A;border-radius:1px;transition:width 0.8s ease"></div>
+  </div>
+</div>
+
 <div id="app">
 
   <!-- ============================================================
@@ -2352,12 +2367,26 @@ function importBackup(event){
   event.target.value=''; // reset so same file can be re-selected later
 }
 
+// ── Splash Screen Dismiss ──
+function dismissSplash(){
+  const splash=document.getElementById('splashScreen');
+  const bar=document.getElementById('splashBar');
+  if(!splash)return;
+  // animate progress bar then fade out
+  setTimeout(()=>{if(bar)bar.style.width='100%';}, 50);
+  setTimeout(()=>{
+    splash.style.opacity='0';
+    setTimeout(()=>{splash.style.display='none';}, 400);
+  }, 700);
+}
+
 // INIT
 loadData();
 renderCalendar();
 renderPayment();
 renderClients();
 renderDashToday();renderDashStats();updateReviewCountBadge();
+dismissSplash();
 </script>
 </body>
 </html>
