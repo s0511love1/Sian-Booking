@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -463,6 +462,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
               <div onclick="event.stopPropagation();exportBackup()" style="padding:12px 16px;font-size:13px;font-weight:400;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:8px;border-bottom:0.5px solid var(--border-light)"><i class="ti ti-download"></i>匯出備份</div>
               <div onclick="event.stopPropagation();triggerImport()" style="padding:12px 16px;font-size:13px;font-weight:400;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:8px;border-bottom:0.5px solid var(--border-light)"><i class="ti ti-upload"></i>匯入進度</div>
               <div onclick="event.stopPropagation();exportExcel()" style="padding:12px 16px;font-size:13px;font-weight:400;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:8px;border-bottom:0.5px solid var(--border-light)"><i class="ti ti-file-spreadsheet"></i>匯出 Excel 報表</div>
+              <div onclick="event.stopPropagation();manualSync()" style="padding:12px 16px;font-size:13px;font-weight:400;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:8px;border-bottom:0.5px solid var(--border-light)"><i class="ti ti-refresh"></i>立即同步</div>
               <div onclick="event.stopPropagation();archiveHistory()" style="padding:12px 16px;font-size:13px;font-weight:400;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:8px"><i class="ti ti-archive"></i>封存歷史訂單</div>
             </div>
           </div>
@@ -615,7 +615,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
       </div>
       <div id="reviewList">
         <div class="review-item" id="ri-1">
-          <div class="ri-top"><div><div class="ri-name">黃雅琳</div><div class="ri-svc">新娘整體造型、精緻韓系霧眉設計 <span style="background:var(--rose-light);color:var(--rose-deep);font-size:10px;padding:1px 7px;border-radius:20px;font-weight:500;margin-left:4px">複選 2 項</span></div></div><div class="ri-time">剛剛</div></div>
+          <div class="ri-top"><div><div class="ri-name">黃雅琳</div><div class="ri-svc">新娘秘書、精緻柔霧眉設計 <span style="background:var(--rose-light);color:var(--rose-deep);font-size:10px;padding:1px 7px;border-radius:20px;font-weight:500;margin-left:4px">複選 2 項</span></div></div><div class="ri-time">剛剛</div></div>
           <div class="ri-metas">
             <div class="ri-meta"><i class="ti ti-calendar" style="font-size:12px"></i>2025-12-14</div>
             <div class="ri-meta"><i class="ti ti-clock" style="font-size:12px"></i>05:30</div>
@@ -846,49 +846,34 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 // DATA
 // ============================================================
 const PAY_LABEL={unpaid:'未付款',deposit:'已付訂金',paid:'已付清'};
-const SERVICES=['新娘整體造型','彩妝服務','精緻韓系霧眉設計','婚前試妝'];
+const SERVICES=['新娘秘書','新娘試妝','活動梳化','彩妝教學','婚紗拍攝造型','精緻柔霧眉設計'];
 function svcLabel(service){return service||'—';}
 const SKINS=['乾性','油性','混合性','敏感肌','痘痘肌','過敏史'];
 const STYLES=['自然清透感','韓系光澤感','歐美立體感','日系清甜感','復古優雅感'];
 
-let orders=[
-  {id:1,bookingId:'B001',name:'林怡君',service:'新娘整體造型',date:'2025-10-18',time:'05:30',loc:'晶華酒店 B2',people:'僅新娘',peopleNote:'',skin:['敏感肌'],allergy:'含酒精',style:'韓系光澤感',note:'避免含酒精產品',pay:'deposit',deposit_amt:5000,final_amt:18000,tags:['敏感肌','新娘造型','飯店婚禮'],status:'confirmed'},
-  {id:2,bookingId:'B002',name:'陳雅婷',service:'婚前試妝',date:'2025-10-18',time:'10:00',loc:'工作室',people:'僅新娘',peopleNote:'',skin:['油性'],allergy:'',style:'韓系光澤感',note:'帶參考圖',pay:'paid',deposit_amt:3000,final_amt:3000,tags:['霧眉熟客','油性肌'],status:'done'},
-  {id:3,bookingId:'B003',name:'王小芸',service:'彩妝服務',date:'2025-10-22',time:'14:30',loc:'寫真攝影棚',people:'僅新娘',peopleNote:'',skin:['混合性'],allergy:'',style:'自然清透感',note:'',pay:'paid',deposit_amt:4500,final_amt:4500,tags:['寫真彩妝'],status:'done'},
-  {id:4,bookingId:'B004',name:'張美玲',service:'新娘整體造型',date:'2025-11-02',time:'05:00',loc:'台中裕元花園',people:'新娘＋媽媽',peopleNote:'媽媽加購妝髮 NT$3,000',skin:['痘痘肌'],allergy:'防腐劑',style:'自然清透感',note:'遮瑕需求高',pay:'unpaid',deposit_amt:0,final_amt:20000,tags:['痘痘肌','新娘造型','戶外婚禮'],status:'confirmed'},
-  {id:8,bookingId:'B004',name:'張美玲',service:'精緻韓系霧眉設計',date:'2025-11-03',time:'14:00',loc:'工作室',people:'僅新娘',peopleNote:'',skin:['痘痘肌'],allergy:'防腐劑',style:'自然清透感',note:'',pay:'unpaid',deposit_amt:0,final_amt:6000,tags:['痘痘肌','霧眉設計'],status:'confirmed'},
-  {id:5,bookingId:'B005',name:'劉宜蓁',service:'精緻韓系霧眉設計',date:'2025-11-15',time:'13:00',loc:'工作室',people:'僅新娘',peopleNote:'',skin:['油性'],allergy:'',style:'韓系光澤感',note:'',pay:'deposit',deposit_amt:2000,final_amt:6000,tags:['霧眉設計','霧眉熟客'],status:'confirmed'},
-  {id:6,bookingId:'B006',name:'吳芷瑄',service:'婚前試妝',date:'2025-11-26',time:'11:00',loc:'工作室',people:'僅新娘',peopleNote:'',skin:['痘痘肌'],allergy:'',style:'自然清透感',note:'痘痘肌，需遮瑕',pay:'unpaid',deposit_amt:0,final_amt:3500,tags:['痘痘肌','需遮瑕'],status:'confirmed'},
-  {id:7,bookingId:'B007',name:'蔡佳穎',service:'新娘整體造型',date:'2025-09-14',time:'05:30',loc:'台南晶英酒店',people:'新娘＋伴娘',peopleNote:'伴娘2人加購妝髮 NT$5,000',skin:['乾性'],allergy:'',style:'復古優雅感',note:'',pay:'paid',deposit_amt:8000,final_amt:22000,tags:['新娘造型','VIP','素材已存'],status:'done'},
-];
-let nextOrderId=9;
+// ============================================================
+// CLOUD CONFIG（填入你的 Apps Script 網址與密鑰）
+// ============================================================
+const CLOUD_CONFIG = {
+  API_URL: 'https://script.google.com/macros/s/AKfycbwQyfZDecV_vkAuI75dmVUEbasYe4LJzAGLGtFsfU4hz-2NRbXXS4q0lJmm3keFlPzoIg/exec',
+  SECRET_KEY: 'Sian嫻美學2026xyz'
+};
 
-let expenses=[
-  {id:1,name:'韓系飾品採購',cat:'飾品',amt:2800,date:'2025-10-10',type:'order',orderId:1},
-  {id:2,name:'底妝補貨',cat:'化妝品 / 保養品',amt:4200,date:'2025-10-15',type:'operation'},
-  {id:3,name:'PT 費用 10月',cat:'PT 費用',amt:6000,date:'2025-10-01',type:'operation'},
-];
-let nextExpId=4;
+// 是否已設定雲端（兩個都填了才算）
+function isCloudReady(){
+  return !!(CLOUD_CONFIG.API_URL && CLOUD_CONFIG.SECRET_KEY);
+}
 
-let tags=[
-  {id:1,name:'敏感肌',cat:'膚質',preset:true},{id:2,name:'痘痘肌',cat:'膚質',preset:true},
-  {id:3,name:'油性肌',cat:'膚質',preset:true},{id:4,name:'乾性肌',cat:'膚質',preset:true},
-  {id:5,name:'霧眉熟客',cat:'客戶特性',preset:false},{id:6,name:'VIP',cat:'客戶特性',preset:false},
-  {id:7,name:'新娘造型',cat:'服務類型',preset:true},{id:8,name:'寫真彩妝',cat:'服務類型',preset:true},
-  {id:9,name:'霧眉設計',cat:'服務類型',preset:true},{id:10,name:'婚前試妝',cat:'服務類型',preset:true},
-  {id:11,name:'戶外婚禮',cat:'婚禮類型',preset:false},{id:12,name:'飯店婚禮',cat:'婚禮類型',preset:false},
-  {id:13,name:'需遮瑕',cat:'自訂',preset:false},{id:14,name:'素材已存',cat:'自訂',preset:false},
-];
+// ============================================================
+// DATA（初始為空，由 syncFromCloud() 或 loadData() 填入）
+// ============================================================
+let orders=[];
+let nextOrderId=1;
+let expenses=[];
+let nextExpId=1;
+let tags=[];
 let nextTagId=15;
-
-let clients=[
-  {id:1,name:'林怡君',phone:'0912-345-678',skin:['敏感肌'],allergy:'含酒精產品',style:'韓系光澤感',note:'習慣早到，請提前準備',repeat:false,orders:[{date:'2025-10-18',service:'新娘整體造型',loc:'晶華酒店 B2'}]},
-  {id:2,name:'陳雅婷',phone:'0923-456-789',skin:['油性'],allergy:'',style:'韓系光澤感',note:'',repeat:true,orders:[{date:'2025-10-18',service:'婚前試妝',loc:'工作室'},{date:'2024-08-10',service:'彩妝服務',loc:'寫真棚'}]},
-  {id:3,name:'王小芸',phone:'0934-567-890',skin:['混合性'],allergy:'',style:'自然清透感',note:'',repeat:false,orders:[{date:'2025-10-22',service:'彩妝服務',loc:'寫真攝影棚'}]},
-  {id:4,name:'張美玲',phone:'0945-678-901',skin:['痘痘肌','敏感肌'],allergy:'防腐劑',style:'自然清透感',note:'遮瑕需求高',repeat:false,orders:[{date:'2025-11-02',service:'新娘整體造型',loc:'台中裕元花園'}]},
-  {id:5,name:'蔡佳穎',phone:'0956-789-012',skin:['乾性'],allergy:'',style:'復古優雅感',note:'',repeat:true,orders:[{date:'2025-09-14',service:'新娘整體造型',loc:'台南晶英酒店'},{date:'2024-05-20',service:'婚前試妝',loc:'工作室'}]},
-  {id:6,name:'劉宜蓁',phone:'0967-890-123',skin:['油性'],allergy:'',style:'韓系光澤感',note:'',repeat:false,orders:[{date:'2025-11-15',service:'精緻韓系霧眉設計',loc:'工作室'}]},
-];
+let clients=[];
 
 // ============================================================
 // NAVIGATION
@@ -923,16 +908,18 @@ const reviewData={
   // 範例：客戶在預約表單複選了「新娘整體造型」+「精緻韓系霧眉設計」
   // 兩個服務項目自動帶入相同的日期/時間/地點（客戶只填一次），可於建立訂單時各自調整
   'ri-1':{clientName:'黃雅琳',phone:'0912-345-678',serviceBlocks:[
-    {service:'新娘整體造型',date:'2025-12-14',time:'05:30',loc:'台中金典酒店',people:'僅新娘',peopleNote:'',total:'',deposit:''},
-    {service:'精緻韓系霧眉設計',date:'2025-12-14',time:'05:30',loc:'台中金典酒店',people:'僅新娘',peopleNote:'',total:'',deposit:''}
+    {service:'新娘秘書',date:'2025-12-14',time:'05:30',loc:'台中金典酒店',people:'僅新娘',peopleNote:'',total:'',deposit:''},
+    {service:'精緻柔霧眉設計',date:'2025-12-14',time:'05:30',loc:'台中金典酒店',people:'僅新娘',peopleNote:'',total:'',deposit:''}
   ],skin:['敏感肌'],allergy:'含酒精',style:'韓系光澤感',note:''},
-  'ri-2':{clientName:'陳怡君',phone:'0923-456-789',serviceBlocks:[{service:'婚前試妝',date:'2025-12-20',time:'13:00',loc:'工作室',people:'僅新娘',peopleNote:'',total:'',deposit:''}],skin:['油性'],allergy:'',style:'自然清透感',note:''},
+  'ri-2':{clientName:'陳怡君',phone:'0923-456-789',serviceBlocks:[{service:'新娘試妝',date:'2025-12-20',time:'13:00',loc:'工作室',people:'僅新娘',peopleNote:'',total:'',deposit:''}],skin:['油性'],allergy:'',style:'自然清透感',note:''},
 };
 
 let currentReviewId=null;
+let currentPendingId=null;
 
-function confirmReview(id,name){
+function confirmReview(id,name,pendingId){
   currentReviewId=id;
+  currentPendingId=pendingId||null;
   // mark review item as "processing" immediately
   const el=document.getElementById(id);
   if(el){
@@ -989,12 +976,17 @@ function renderReviewItemActions(id){
   `;
 }
 
-function rejectReview(id){
-  const el=document.getElementById(id);
+function rejectReview(elId, pendingId){
+  const el=document.getElementById(elId);
+  if(!el)return;
   const name=el.querySelector('.ri-name').textContent;
   el.style.opacity='0.5';el.style.pointerEvents='none';
   el.querySelector('.ri-actions').innerHTML=`<div style="grid-column:span 2;text-align:center;font-size:13px;color:var(--sub);padding:8px;background:var(--warm);border-radius:9px">${name} 的申請已婉拒</div>`;
   updateReviewCountBadge();
+  // mark as rejected in cloud
+  if(pendingId&&isCloudReady()){
+    callAPI({action:'markPending',id:pendingId,status:'rejected'}).catch(e=>console.warn('標記待審核失敗:',e));
+  }
 }
 
 // ============================================================
@@ -1060,7 +1052,7 @@ function renderDashToday(){
   const today=new Date();
   const ds=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
   const todayOrders=orders.filter(o=>o.date===ds).sort((a,b)=>a.time.localeCompare(b.time));
-  const COLOR={'新娘整體造型':'','彩妝服務':'g','精緻韓系霧眉設計':'amber','婚前試妝':'m'};
+  const COLOR={'新娘秘書':'','新娘試妝':'m','活動梳化':'g','彩妝教學':'g','婚紗拍攝造型':'','精緻柔霧眉設計':'amber'};
   const el=document.getElementById('dashTodayList');
   if(!el)return;
   if(!todayOrders.length){
@@ -1405,8 +1397,10 @@ function addExpense(){
   const amt=parseInt(document.getElementById('expAmt').value)||0;
   if(!name||!amt){alert('請填寫項目與金額');return;}
   const orderId=currentExpType==='order'?parseInt(document.getElementById('expOrderId').value)||null:null;
-  expenses.push({id:nextExpId++,name,cat:document.getElementById('expCat').value,amt,date:document.getElementById('expDate').value,type:currentExpType,orderId});
+  const newExp={id:nextExpId++,name,cat:document.getElementById('expCat').value,amt,date:document.getElementById('expDate').value,type:currentExpType,orderId};
+  expenses.push(newExp);
   saveData();
+  if(isCloudReady()){ cloudSave('addExpense',{expense:newExp}); }
   closeSheet('expModal');renderPayment();
 }
 
@@ -1543,12 +1537,19 @@ function addTag(){
   const cat=document.getElementById('newTagCat').value;
   if(!name)return;
   if(tags.find(t=>t.name===name)){alert('標籤已存在');return;}
-  tags.push({id:nextTagId++,name,cat,preset:false});
+  const newTag={id:nextTagId++,name,cat,preset:false};
+  tags.push(newTag);
   document.getElementById('newTagName').value='';
   saveData();
+  if(isCloudReady()){ cloudSave('addTag',{tag:newTag}); }
   renderAllTagsList();
 }
-function deleteTag(id){tags=tags.filter(t=>t.id!==id);saveData();renderAllTagsList();}
+function deleteTag(id){
+  tags=tags.filter(t=>t.id!==id);
+  saveData();
+  if(isCloudReady()){ cloudSave('deleteTag',{id}); }
+  renderAllTagsList();
+}
 
 // ── EDIT CLIENT ──
 let editClientId=null;
@@ -1595,6 +1596,7 @@ function saveEditClient(){
   c.note=document.getElementById('ecNote').value.trim();
   // skin already updated live via ecToggleSkin
   saveData();
+  if(isCloudReady()){ cloudSave('updateClient',{client:clients.find(x=>x.id===editClientId)}); }
   closeSheet('editClientSheet');
   renderClients();
   showToast('已更新客戶資料');
@@ -1856,6 +1858,10 @@ function addSubmit(){
     tags:[...addForm.tags],status:'confirmed'
   }));
   orders.push(...newOrders);
+  // save to cloud
+  if(isCloudReady()){
+    newOrders.forEach(o=>cloudSave('addOrder',{order:o}));
+  }
   // sync clients
   const existingClient=clients.find(c=>c.name===addForm.clientName);
   if(existingClient){
@@ -1884,7 +1890,11 @@ function addSubmit(){
     if(el){
       el.querySelector('.ri-actions').innerHTML=`<div style="grid-column:span 2;text-align:center;font-size:13px;font-weight:500;color:var(--green);padding:8px;background:var(--green-bg);border-radius:9px">✓ 訂單已建立</div>`;
     }
+    if(currentPendingId&&isCloudReady()){
+      callAPI({action:'markPending',id:currentPendingId,status:'done'}).catch(e=>console.warn('標記待審核失敗:',e));
+    }
     currentReviewId=null;
+    currentPendingId=null;
     updateReviewCountBadge();
   }
 }
@@ -1966,6 +1976,7 @@ function applyPayConfirm(){
     }
   }
   saveData();
+  if(isCloudReady()){ cloudSave('updateOrder',{order:orders.find(x=>x.id===payConfirmTaskId)}); }
   closePayConfirm();
   // refresh views
   if(calSelDate)renderDayDetail(calSelDate);
@@ -2043,6 +2054,7 @@ function saveEditOrder(){
   t.deposit_amt=parseInt(document.getElementById('editDeposit').value)||t.deposit_amt;
   t.note=document.getElementById('editNote').value;
   saveData();
+  if(isCloudReady()){ cloudSave('updateOrder',{order:orders.find(x=>x.id===editOrderId)}); }
   closeSheet('editSheet');
   if(calSelDate)renderDayDetail(calSelDate);
   renderCalendar();
@@ -2058,6 +2070,7 @@ function markOrderDone(id){
   if(confirm(t.name+' 的服務已完成？')){
     t.status='done';
     saveData();
+    if(isCloudReady()){ cloudSave('updateOrder',{order:t}); }
     if(calSelDate)renderDayDetail(calSelDate);
     renderCalendar();
     renderDashStats();
@@ -2066,40 +2079,167 @@ function markOrderDone(id){
 }
 
 // ============================================================
-// LOCAL STORAGE PERSISTENCE
+// ============================================================
+// DATA PERSISTENCE：雲端優先，LocalStorage 作為備用快取
 // ============================================================
 const STORAGE_KEY='sian_data_v1';
+let isSyncing=false;
 
-function saveData(){
+// ── 呼叫 Apps Script API ──
+async function callAPI(payload){
+  if(!isCloudReady()) throw new Error('尚未設定雲端連線');
+  const res=await fetch(CLOUD_CONFIG.API_URL,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({...payload, key:CLOUD_CONFIG.SECRET_KEY})
+  });
+  const data=await res.json();
+  if(!data.ok) throw new Error(data.error||'API 錯誤');
+  return data;
+}
+
+// ── 從雲端同步所有資料（App 啟動時呼叫）──
+async function syncFromCloud(){
+  if(!isCloudReady()){
+    // 未設定雲端 → 降級使用 LocalStorage
+    loadFromLocal();
+    return;
+  }
+  showLoadingOverlay('正在同步資料…');
   try{
-    const data={
-      orders, expenses, tags, clients,
-      nextOrderId, nextExpId, nextTagId,
-      savedAt:new Date().toISOString()
-    };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  }catch(e){
-    console.error('儲存失敗:', e);
+    const data=await callAPI({action:'syncAll'});
+    orders   = data.orders   || [];
+    clients  = data.clients  || [];
+    expenses = data.expenses || [];
+    tags     = data.tags     || [];
+    nextOrderId   = data.nextOrderId   || 1;
+    nextExpId     = data.nextExpenseId || 1;
+    nextTagId     = data.nextTagId     || 15;
+    // 同步待審核
+    if(data.pending) updatePendingList(data.pending);
+    // 同時更新本機快取
+    saveToLocal();
+    hideLoadingOverlay();
+  }catch(err){
+    console.warn('雲端同步失敗，使用本機快取:', err);
+    loadFromLocal();
+    hideLoadingOverlay();
+    showToast('⚠️ 無法連線雲端，使用本機快取');
   }
 }
 
-function loadData(){
+// ── 儲存到本機快取（備用）──
+function saveToLocal(){
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      orders, expenses, tags, clients,
+      nextOrderId, nextExpId, nextTagId,
+      savedAt:new Date().toISOString()
+    }));
+  }catch(e){ console.error('本機儲存失敗:', e); }
+}
+
+// ── 從本機快取讀取 ──
+function loadFromLocal(){
   try{
     const raw=localStorage.getItem(STORAGE_KEY);
-    if(!raw)return false;
+    if(!raw) return false;
     const data=JSON.parse(raw);
-    if(data.orders)orders=data.orders;
-    if(data.expenses)expenses=data.expenses;
-    if(data.tags)tags=data.tags;
-    if(data.clients)clients=data.clients;
-    if(data.nextOrderId)nextOrderId=data.nextOrderId;
-    if(data.nextExpId)nextExpId=data.nextExpId;
-    if(data.nextTagId)nextTagId=data.nextTagId;
+    if(data.orders)   orders=data.orders;
+    if(data.expenses) expenses=data.expenses;
+    if(data.tags)     tags=data.tags;
+    if(data.clients)  clients=data.clients;
+    if(data.nextOrderId) nextOrderId=data.nextOrderId;
+    if(data.nextExpId)   nextExpId=data.nextExpId;
+    if(data.nextTagId)   nextTagId=data.nextTagId;
     return true;
-  }catch(e){
-    console.error('讀取失敗:', e);
-    return false;
+  }catch(e){ console.error('本機讀取失敗:', e); return false; }
+}
+
+// 舊版相容性（被其他地方呼叫的 saveData/loadData 對應新函式）
+function saveData(){ saveToLocal(); }
+function loadData(){ return loadFromLocal(); }
+
+// ── 雲端寫入（含本機備份）──
+async function cloudSave(action, payload){
+  // 先更新本機快取（即時回應 UI）
+  saveToLocal();
+  // 再非同步寫入雲端
+  if(isCloudReady()){
+    try{
+      await callAPI({action, ...payload});
+    }catch(err){
+      console.warn('雲端寫入失敗（本機已備份）:', err);
+      showToast('⚠️ 雲端同步失敗，已保存在本機');
+    }
   }
+}
+
+// ── 載入中遮罩 ──
+function showLoadingOverlay(msg){
+  let el=document.getElementById('loadingOverlay');
+  if(!el){
+    el=document.createElement('div');
+    el.id='loadingOverlay';
+    el.style.cssText='position:fixed;inset:0;background:rgba(247,242,239,0.92);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9998;gap:14px';
+    el.innerHTML=`<div style="font-family:'Cormorant Garamond',serif;font-weight:300;font-size:32px;letter-spacing:0.2em;color:#6B5C58">Sian</div><div id="loadingMsg" style="font-size:13px;color:#9B8B87;letter-spacing:0.1em"></div><div style="width:40px;height:2px;background:#DDD0CB;border-radius:1px;overflow:hidden"><div id="loadingBar" style="width:0%;height:100%;background:#C4A49A;border-radius:1px;transition:width 1.5s ease"></div></div>`;
+    document.body.appendChild(el);
+  }
+  document.getElementById('loadingMsg').textContent=msg||'載入中…';
+  el.style.display='flex';
+  setTimeout(()=>{const b=document.getElementById('loadingBar');if(b)b.style.width='80%';},50);
+}
+function hideLoadingOverlay(){
+  const el=document.getElementById('loadingOverlay');
+  if(!el)return;
+  const b=document.getElementById('loadingBar');
+  if(b)b.style.width='100%';
+  setTimeout(()=>{el.style.display='none';if(b)b.style.width='0%';},300);
+}
+
+// ── 更新待審核清單（從 cloud sync 回來的資料）──
+function updatePendingList(pendingItems){
+  const list=document.getElementById('reviewList');
+  if(!list)return;
+  if(!pendingItems.length){
+    list.innerHTML='<div style="text-align:center;padding:32px 20px;color:var(--sub);font-size:13px;line-height:1.8">目前沒有待審核的預約表單</div>';
+    updateReviewCountBadge();
+    return;
+  }
+  list.innerHTML=pendingItems.map(item=>{
+    const svcLabel=Array.isArray(item.services)?item.services.join('、'):item.services||'';
+    const multi=Array.isArray(item.services)&&item.services.length>1;
+    const dt=new Date(item.submittedAt);
+    const timeAgo=isNaN(dt)?'':'剛剛';
+    return`<div class="review-item" id="ri-${item.id}">
+      <div class="ri-top"><div>
+        <div class="ri-name">${item.clientName}</div>
+        <div class="ri-svc">${svcLabel}${multi?` <span style="background:var(--rose-light);color:var(--rose-deep);font-size:10px;padding:1px 7px;border-radius:20px;font-weight:500;margin-left:4px">複選 ${item.services.length} 項</span>`:''}</div>
+      </div><div class="ri-time">${timeAgo}</div></div>
+      <div class="ri-metas">
+        <div class="ri-meta"><i class="ti ti-calendar" style="font-size:12px"></i>${item.date||'—'}</div>
+        <div class="ri-meta"><i class="ti ti-clock" style="font-size:12px"></i>${item.time||'—'}</div>
+        <div class="ri-meta"><i class="ti ti-map-pin" style="font-size:12px"></i>${item.loc||'—'}</div>
+        <div class="ri-meta"><i class="ti ti-phone" style="font-size:12px"></i>${item.phone||'—'}</div>
+      </div>
+      ${item.allergy||item.skin.length?`<div class="ri-note">膚質：${item.skin.join('、')||'未填'}${item.allergy?'・過敏：'+item.allergy:''}${item.style?'・風格：'+item.style:''}</div>`:''}
+      <div class="ri-actions">
+        <div class="ri-btn danger" onclick="rejectReview('ri-${item.id}','${item.id}')"><i class="ti ti-x"></i> 婉拒</div>
+        <div class="ri-btn primary" onclick="confirmReview('ri-${item.id}','${item.clientName}','${item.id}')"><i class="ti ti-check"></i> 建立訂單</div>
+      </div>
+    </div>`;
+  }).join('');
+  // 同時更新 reviewData（給 confirmReview 用）
+  pendingItems.forEach(item=>{
+    reviewData['ri-'+item.id]={
+      clientName:item.clientName, phone:item.phone,
+      serviceBlocks: Array.isArray(item.services)
+        ? item.services.map(s=>({service:s,date:item.date,time:item.time,loc:item.loc,people:item.people||'僅新娘',peopleNote:item.peopleNote||'',total:'',deposit:''}))
+        : [{service:item.services,date:item.date,time:item.time,loc:item.loc,people:item.people||'僅新娘',peopleNote:item.peopleNote||'',total:'',deposit:''}],
+      skin:item.skin||[], allergy:item.allergy||'', style:item.style||'', note:item.note||''
+    };
+  });
+  updateReviewCountBadge();
 }
 
 function showToast(msg){
@@ -2110,6 +2250,19 @@ function showToast(msg){
 }
 
 // ── Avatar dropdown menu ──
+function manualSync(){
+  document.getElementById('avMenu').style.display='none';
+  if(!isCloudReady()){
+    alert('尚未設定雲端連線，請在 CLOUD_CONFIG 填入 API_URL 和 SECRET_KEY');
+    return;
+  }
+  syncFromCloud().then(()=>{
+    renderCalendar();renderPayment();renderClients();
+    renderDashToday();renderDashStats();updateReviewCountBadge();
+    showToast('✓ 已同步最新資料');
+  });
+}
+
 function toggleAvMenu(){
   const menu=document.getElementById('avMenu');
   menu.style.display=menu.style.display==='block'?'none':'block';
@@ -2381,12 +2534,27 @@ function dismissSplash(){
 }
 
 // INIT
-loadData();
-renderCalendar();
-renderPayment();
-renderClients();
-renderDashToday();renderDashStats();updateReviewCountBadge();
-dismissSplash();
+async function initApp(){
+  // 先從本機快取快速渲染（避免等待雲端時白畫面）
+  loadFromLocal();
+  renderCalendar();
+  renderPayment();
+  renderClients();
+  renderDashToday();
+  renderDashStats();
+  updateReviewCountBadge();
+  dismissSplash();
+  // 再從雲端同步最新資料
+  await syncFromCloud();
+  // 同步後重新渲染
+  renderCalendar();
+  renderPayment();
+  renderClients();
+  renderDashToday();
+  renderDashStats();
+  updateReviewCountBadge();
+}
+initApp();
 </script>
 </body>
 </html>
