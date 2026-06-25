@@ -1849,13 +1849,15 @@ function addSubmit(){
     }
   }
   const bookingId='B'+Date.now();
+  const now=new Date().toISOString();
   const newOrders=addForm.serviceBlocks.map(b=>({
     id:nextOrderId++,bookingId,
     name:addForm.clientName,
     service:b.service,date:b.date,time:b.time,loc:b.loc,people:b.people,peopleNote:b.peopleNote||'',
     skin:[...addForm.skin],allergy:addForm.allergy,style:addForm.style,note:addForm.note,
     pay:'unpaid',deposit_amt:parseInt(b.deposit)||0,final_amt:parseInt(b.total)||0,
-    tags:[...addForm.tags],status:'confirmed'
+    tags:[...addForm.tags],status:'confirmed',
+    createdAt:now,updatedAt:now
   }));
   orders.push(...newOrders);
   // save to cloud
@@ -2049,6 +2051,7 @@ function saveEditOrder(){
   t.loc=document.getElementById('editLoc').value;
   t.people=document.getElementById('editPeople').value;
   t.peopleNote=document.getElementById('editPeopleNote').value;
+  t.updatedAt=new Date().toISOString();
   t.allergy=document.getElementById('editAllergy').value;
   t.final_amt=parseInt(document.getElementById('editTotal').value)||t.final_amt;
   t.deposit_amt=parseInt(document.getElementById('editDeposit').value)||t.deposit_amt;
@@ -2085,14 +2088,13 @@ function markOrderDone(id){
 const STORAGE_KEY='sian_data_v1';
 let isSyncing=false;
 
-// ── 呼叫 Apps Script API ──
+// ── 呼叫 Apps Script API（使用 GET + payload 參數，避免 CORS 問題）──
 async function callAPI(payload){
   if(!isCloudReady()) throw new Error('尚未設定雲端連線');
-  const res=await fetch(CLOUD_CONFIG.API_URL,{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({...payload, key:CLOUD_CONFIG.SECRET_KEY})
-  });
+  const fullPayload={...payload, key:CLOUD_CONFIG.SECRET_KEY};
+  // Apps Script Web App 用 GET + p 參數傳遞 JSON，避免 CORS preflight 問題
+  const url=CLOUD_CONFIG.API_URL+'?p='+encodeURIComponent(JSON.stringify(fullPayload));
+  const res=await fetch(url,{method:'GET',redirect:'follow'});
   const data=await res.json();
   if(!data.ok) throw new Error(data.error||'API 錯誤');
   return data;
