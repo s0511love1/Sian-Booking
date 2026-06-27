@@ -913,9 +913,10 @@ function confirmReview(elId, name, pendingId){
   }
   updateReviewCountBadge();
 
-  // 關閉審核 sheet
+  // 關閉審核 sheet，等動畫結束後再開啟表單
   closeSheet('reviewSheet');
 
+  setTimeout(()=>{
   // 帶入 reviewData 資料
   const data=reviewData[elId];
   if(data){
@@ -928,7 +929,6 @@ function confirmReview(elId, name, pendingId){
     addForm.isExisting=false;
     addForm.tags=[];
   } else {
-    // reviewData 找不到，重置 addForm 讓使用者手動填
     prevPage='dashboard';
     addForm={
       isExisting:false,clientName:name||'',phone:'',
@@ -947,7 +947,7 @@ function confirmReview(elId, name, pendingId){
   const ctaEl=document.getElementById('addCtaBar');
   const stepsEl=document.getElementById('addStepsBar');
 
-  if(!overlay){console.error('找不到 addOrderOverlay');return;}
+  if(!overlay){return;}
 
   successEl.style.display='none';
   formEl.style.display='block';
@@ -963,7 +963,6 @@ function confirmReview(elId, name, pendingId){
     setTimeout(()=>{
       const fc=document.getElementById('addFormContent');
       if(!fc)return;
-      // 避免重複插入
       if(fc.querySelector('.prefill-notice'))return;
       const notice=document.createElement('div');
       notice.className='prefill-notice';
@@ -972,6 +971,7 @@ function confirmReview(elId, name, pendingId){
       fc.insertBefore(notice,fc.firstChild);
     },100);
   }
+  }, 350);  // 等 sheet 關閉動畫結束（通常 300ms）
 }
 
 function updateReviewCountBadge(){
