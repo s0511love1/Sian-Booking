@@ -333,7 +333,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 /* ============================================================
    ADD ORDER FORM (OVERLAY)
    ============================================================ */
-#addOrderOverlay{position:absolute;inset:0;background:var(--warm);z-index:300;display:none;flex-direction:column}
+#addOrderOverlay{position:absolute;inset:0;background:var(--warm);z-index:10000;display:none;flex-direction:column}
 #addOrderOverlay.show{display:flex}
 .add-topbar{background:var(--white);padding:14px 20px;border-bottom:0.5px solid var(--line);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
 .add-steps{display:flex;align-items:center;padding:10px 20px;background:var(--white);border-bottom:0.5px solid var(--line);flex-shrink:0}
@@ -900,9 +900,6 @@ let currentReviewId=null;
 let currentPendingId=null;
 
 function confirmReview(elId, name, pendingId){
-  console.log('[confirmReview] elId:', elId, 'name:', name, 'pendingId:', pendingId);
-  console.log('[confirmReview] reviewData keys:', Object.keys(reviewData));
-  console.log('[confirmReview] reviewData[elId]:', reviewData[elId]);
   currentReviewId=elId;
   currentPendingId=pendingId||null;
 
@@ -957,16 +954,9 @@ function confirmReview(elId, name, pendingId){
   ctaEl.style.display='flex';
   stepsEl.style.display='flex';
   overlay.classList.add('show');
-  console.log('[confirmReview] overlay display:', overlay.style.display, 'classList:', overlay.className);
-  console.log('[confirmReview] addForm:', JSON.stringify({
-    clientName: addForm.clientName,
-    serviceBlocks: addForm.serviceBlocks?.length,
-    step: addStep
-  }));
 
   renderAddSteps();
   renderAddForm();
-  console.log('[confirmReview] renderAddForm done, formContent:', document.getElementById('addFormContent')?.innerHTML?.slice(0,100));
 
   // 顯示帶入提示
   if(data){
@@ -2144,20 +2134,12 @@ async function callAPI(payload){
 // ── 從雲端同步所有資料（App 啟動時呼叫）──
 async function syncFromCloud(){
   if(!isCloudReady()){
-    console.log('[sync] 未設定雲端，使用本機');
-    loadFromLocal();
+      loadFromLocal();
     return;
   }
-  console.log('[sync] 開始從雲端同步...');
   showLoadingOverlay('正在同步資料…');
   try{
     const data=await callAPI({action:'syncAll'});
-    console.log('[sync] 雲端回傳:', {
-      orders: data.orders?.length,
-      clients: data.clients?.length,
-      pending: data.pending?.length,
-      ok: data.ok
-    });
     orders   = data.orders   || [];
     clients  = data.clients  || [];
     expenses = data.expenses || [];
@@ -2167,16 +2149,13 @@ async function syncFromCloud(){
     nextTagId     = data.nextTagId     || 15;
     // 同步待審核
     if(data.pending){
-      console.log('[sync] 待審核筆數:', data.pending.length);
-      updatePendingList(data.pending);
+          updatePendingList(data.pending);
     } else {
-      console.warn('[sync] 沒有 pending 欄位');
-    }
+        }
     saveToLocal();
     hideLoadingOverlay();
   }catch(err){
-    console.error('[sync] 雲端同步失敗:', err);
-    loadFromLocal();
+      loadFromLocal();
     hideLoadingOverlay();
     showToast('⚠️ 無法連線雲端，使用本機快取');
   }
@@ -2243,17 +2222,21 @@ function showLoadingOverlay(msg){
   el.style.display='flex';
   setTimeout(()=>{const b=document.getElementById('loadingBar');if(b)b.style.width='80%';},50);
 }
-function hideLoadingOverlay(){
+function hideLoadingOverlay(instant){
   const el=document.getElementById('loadingOverlay');
   if(!el)return;
   const b=document.getElementById('loadingBar');
-  if(b)b.style.width='100%';
-  setTimeout(()=>{el.style.display='none';if(b)b.style.width='0%';},300);
+  if(instant){
+    el.style.display='none';
+    if(b)b.style.width='0%';
+  } else {
+    if(b)b.style.width='100%';
+    setTimeout(()=>{el.style.display='none';if(b)b.style.width='0%';},300);
+  }
 }
 
 // ── 更新待審核清單（從 cloud sync 回來的資料）──
 function updatePendingList(pendingItems){
-  console.log('[updatePendingList] 收到', pendingItems.length, '筆待審核');
   const list=document.getElementById('reviewList');
   if(!list){console.error('[updatePendingList] 找不到 reviewList');return;}
   if(!pendingItems.length){
