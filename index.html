@@ -899,43 +899,82 @@ const reviewData={};
 let currentReviewId=null;
 let currentPendingId=null;
 
-function confirmReview(id,name,pendingId){
-  currentReviewId=id;
+function confirmReview(elId, name, pendingId){
+  console.log('[confirmReview] elId:', elId, 'name:', name, 'pendingId:', pendingId);
+  console.log('[confirmReview] reviewData keys:', Object.keys(reviewData));
+  console.log('[confirmReview] reviewData[elId]:', reviewData[elId]);
+  currentReviewId=elId;
   currentPendingId=pendingId||null;
-  // mark review item as "processing" immediately
-  const el=document.getElementById(id);
+
+  // 標記該項目為「處理中」
+  const el=document.getElementById(elId);
   if(el){
-    el.style.opacity='0.55';el.style.pointerEvents='none';
-    el.querySelector('.ri-actions').innerHTML=`<div style="grid-column:span 2;text-align:center;font-size:13px;color:var(--sub);padding:8px;background:var(--warm);border-radius:9px"><i class="ti ti-loader" style="margin-right:5px"></i>請完成新增訂單表單…</div>`;
+    el.style.opacity='0.55';
+    el.style.pointerEvents='none';
+    const actionsEl=el.querySelector('.ri-actions');
+    if(actionsEl) actionsEl.innerHTML=`<div style="grid-column:span 2;text-align:center;font-size:13px;color:var(--sub);padding:8px;background:var(--warm);border-radius:9px"><i class="ti ti-loader" style="margin-right:5px"></i>請完成新增訂單表單…</div>`;
   }
   updateReviewCountBadge();
-  // close review sheet first
+
+  // 關閉審核 sheet
   closeSheet('reviewSheet');
-  // pre-fill addOrder form with review data
-  const data=reviewData[id];
+
+  // 帶入 reviewData 資料
+  const data=reviewData[elId];
   if(data){
     prevPage='dashboard';
-    Object.assign(addForm, JSON.parse(JSON.stringify(data)));
+    try{
+      Object.assign(addForm, JSON.parse(JSON.stringify(data)));
+    }catch(e){
+      Object.assign(addForm, data);
+    }
     addForm.isExisting=false;
     addForm.tags=[];
+  } else {
+    // reviewData 找不到，重置 addForm 讓使用者手動填
+    prevPage='dashboard';
+    addForm={
+      isExisting:false,clientName:name||'',phone:'',
+      serviceBlocks:[{service:'',date:'',time:'06:00',loc:'',venueAddress:'',people:'僅新娘',peopleNote:'',total:'',deposit:''}],
+      skin:[],allergy:'',style:'自然清透感',note:'',tags:[]
+    };
   }
-  // open add order overlay - start at step 1 but data is pre-filled
-  document.getElementById('addOrderOverlay').classList.add('show');
-  document.getElementById('addSuccess').style.display='none';
-  document.getElementById('addFormContent').style.display='block';
-  document.getElementById('addCtaBar').style.display='flex';
-  document.getElementById('addStepsBar').style.display='flex';
+
+  // 重置表單狀態
   addStep=1;
+
+  // 顯示 overlay
+  const overlay=document.getElementById('addOrderOverlay');
+  const successEl=document.getElementById('addSuccess');
+  const formEl=document.getElementById('addFormContent');
+  const ctaEl=document.getElementById('addCtaBar');
+  const stepsEl=document.getElementById('addStepsBar');
+
+  if(!overlay){console.error('找不到 addOrderOverlay');return;}
+
+  successEl.style.display='none';
+  formEl.style.display='block';
+  ctaEl.style.display='flex';
+  stepsEl.style.display='flex';
+  overlay.classList.add('show');
+
   renderAddSteps();
   renderAddForm();
-  // show a notice that data is pre-filled
-  setTimeout(()=>{
-    const content=document.getElementById('addFormContent');
-    const notice=document.createElement('div');
-    notice.style.cssText='background:#DCFCE7;border:0.5px solid #22C55E;border-radius:9px;padding:10px 14px;font-size:12px;font-weight:500;color:#166534;margin-bottom:14px;display:flex;align-items:center;gap:7px';
-    notice.innerHTML='<i class="ti ti-check-circle"></i>已帶入預約表單資料，請確認後填寫金額';
-    content.insertBefore(notice, content.firstChild);
-  }, 50);
+
+  // 顯示帶入提示
+  if(data){
+    setTimeout(()=>{
+      const fc=document.getElementById('addFormContent');
+      if(!fc)return;
+      // 避免重複插入
+      if(fc.querySelector('.prefill-notice'))return;
+      const notice=document.createElement('div');
+      notice.className='prefill-notice';
+      notice.style.cssText='background:#DCFCE7;border:0.5px solid #22C55E;border-radius:9px;padding:10px 14px;font-size:12px;font-weight:500;color:#166534;margin-bottom:14px;display:flex;align-items:center;gap:7px';
+      notice.innerHTML='<i class="ti ti-check-circle"></i>已帶入預約表單資料，請確認後填寫金額';
+      fc.insertBefore(notice,fc.firstChild);
+    },100);
+  }
 }
 
 function updateReviewCountBadge(){
@@ -2098,13 +2137,20 @@ async function callAPI(payload){
 // ── 從雲端同步所有資料（App 啟動時呼叫）──
 async function syncFromCloud(){
   if(!isCloudReady()){
-    // 未設定雲端 → 降級使用 LocalStorage
+    console.log('[sync] 未設定雲端，使用本機');
     loadFromLocal();
     return;
   }
+  console.log('[sync] 開始從雲端同步...');
   showLoadingOverlay('正在同步資料…');
   try{
     const data=await callAPI({action:'syncAll'});
+    console.log('[sync] 雲端回傳:', {
+      orders: data.orders?.length,
+      clients: data.clients?.length,
+      pending: data.pending?.length,
+      ok: data.ok
+    });
     orders   = data.orders   || [];
     clients  = data.clients  || [];
     expenses = data.expenses || [];
@@ -2113,12 +2159,16 @@ async function syncFromCloud(){
     nextExpId     = data.nextExpenseId || 1;
     nextTagId     = data.nextTagId     || 15;
     // 同步待審核
-    if(data.pending) updatePendingList(data.pending);
-    // 同時更新本機快取
+    if(data.pending){
+      console.log('[sync] 待審核筆數:', data.pending.length);
+      updatePendingList(data.pending);
+    } else {
+      console.warn('[sync] 沒有 pending 欄位');
+    }
     saveToLocal();
     hideLoadingOverlay();
   }catch(err){
-    console.warn('雲端同步失敗，使用本機快取:', err);
+    console.error('[sync] 雲端同步失敗:', err);
     loadFromLocal();
     hideLoadingOverlay();
     showToast('⚠️ 無法連線雲端，使用本機快取');
@@ -2196,8 +2246,9 @@ function hideLoadingOverlay(){
 
 // ── 更新待審核清單（從 cloud sync 回來的資料）──
 function updatePendingList(pendingItems){
+  console.log('[updatePendingList] 收到', pendingItems.length, '筆待審核');
   const list=document.getElementById('reviewList');
-  if(!list)return;
+  if(!list){console.error('[updatePendingList] 找不到 reviewList');return;}
   if(!pendingItems.length){
     list.innerHTML='<div style="text-align:center;padding:32px 20px;color:var(--sub);font-size:13px;line-height:1.8">目前沒有待審核的預約表單</div>';
     updateReviewCountBadge();
