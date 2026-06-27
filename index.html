@@ -900,6 +900,7 @@ let currentReviewId=null;
 let currentPendingId=null;
 
 function confirmReview(elId, name, pendingId){
+  console.log('confirmReview START', elId, name, pendingId);
   currentReviewId=elId;
   currentPendingId=pendingId||null;
 
@@ -917,6 +918,8 @@ function confirmReview(elId, name, pendingId){
   closeSheet('reviewSheet');
 
   setTimeout(()=>{
+  console.log('confirmReview setTimeout fired');
+  try{
   // 帶入 reviewData 資料
   const data=reviewData[elId];
   if(data){
@@ -971,6 +974,7 @@ function confirmReview(elId, name, pendingId){
       fc.insertBefore(notice,fc.firstChild);
     },100);
   }
+  } catch(err){ console.error('confirmReview ERROR:', err.message, err.stack); }
   }, 350);  // 等 sheet 關閉動畫結束（通常 300ms）
 }
 
