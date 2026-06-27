@@ -901,8 +901,10 @@ const reviewData={};
 let currentReviewId=null;
 let currentPendingId=null;
 
-function confirmReview(elId, name, pendingId){
-  console.log('confirmReview START', elId, name, pendingId);
+function confirmReview(elId, pendingId){
+  const reviewEntry=reviewData[elId]||{};
+  const name=reviewEntry.clientName||'';
+  console.log('confirmReview START', elId, pendingId, 'name:', name);
   currentReviewId=elId;
   currentPendingId=pendingId||null;
 
@@ -2270,7 +2272,7 @@ function updatePendingList(pendingItems){
       ${item.allergy||item.skin.length?`<div class="ri-note">膚質：${item.skin.join('、')||'未填'}${item.allergy?'・過敏：'+item.allergy:''}${item.style?'・風格：'+item.style:''}</div>`:''}
       <div class="ri-actions">
         <div class="ri-btn danger" data-elid="${safeId}" data-pid="${item.id}" onclick="rejectReview(this.dataset.elid,this.dataset.pid)"><i class="ti ti-x"></i> 婉拒</div>
-        <div class="ri-btn primary" data-elid="${safeId}" data-name="${item.clientName.replace(/"/g,'')}" data-pid="${item.id}" onclick="confirmReview(this.dataset.elid,this.dataset.name,this.dataset.pid)"><i class="ti ti-check"></i> 建立訂單</div>
+        <div class="ri-btn primary" data-elid="${safeId}" data-pid="${item.id}" onclick="confirmReview(this.dataset.elid,this.dataset.pid)"><i class="ti ti-check"></i> 建立訂單</div>
       </div>
     </div>`;
   }).join('');
@@ -2280,12 +2282,24 @@ function updatePendingList(pendingItems){
     reviewData[safeId]={
       clientName:item.clientName, phone:item.phone,
       serviceBlocks: Array.isArray(item.services)
-        ? item.services.map(s=>({service:s,date:item.date,loc:item.loc,venueAddress:item.venueAddress||'',people:item.people||'僅新娘',peopleNote:item.peopleNote||'',total:'',deposit:''}))
-        : [{service:item.services,date:item.date,loc:item.loc,venueAddress:item.venueAddress||'',people:item.people||'僅新娘',peopleNote:item.peopleNote||'',total:'',deposit:''}],
-      skin:item.skin||[], allergy:item.allergy||'', style:item.style||'', note:item.note||''
+        ? item.services.map(s=>({service:s,date:fmtDate(item.date),loc:item.loc,venueAddress:item.venueAddress||'',people:item.people||'僅新娘',peopleNote:item.peopleNote||'',total:'',deposit:''}))
+        : [{service:item.services,date:fmtDate(item.date),loc:item.loc,venueAddress:item.venueAddress||'',people:item.people||'僅新娘',peopleNote:item.peopleNote||'',total:'',deposit:''}],
+      skin:item.skin||[], allergy:item.allergy||'', style:item.style||'', note:item.note||'',
+      phone:(item.phone||'').replace(/^'+/,'')
     };
   });
   updateReviewCountBadge();
+}
+
+function fmtDate(d){
+  if(!d)return '';
+  // Handle ISO format: 2026-07-17T16:00:00.000Z → 2026-07-17
+  if(typeof d==='string'&&d.length>10&&d.includes('T'))return d.slice(0,10);
+  if(typeof d==='string')return d;
+  // Handle Date object
+  const dt=new Date(d);
+  if(isNaN(dt))return '';
+  return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');
 }
 
 function formatTimeAgo(dt){
