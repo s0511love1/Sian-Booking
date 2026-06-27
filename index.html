@@ -455,7 +455,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
         <div class="topbar-actions">
           <div class="icon-btn" onclick="openReviewSheet()">
             <i class="ti ti-bell"></i>
-            <div class="notif-dot"></div>
+            <div class="notif-dot" id="bellDot" style="display:none"></div>
           </div>
           <div class="icon-btn av" onclick="toggleAvMenu()" style="position:relative">嫻
             <div id="avMenu" style="display:none;position:absolute;top:42px;right:0;background:var(--white);border:0.5px solid var(--line);border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,0.12);min-width:180px;z-index:600;overflow:hidden">
@@ -908,10 +908,10 @@ const reviewData={
   // 範例：客戶在預約表單複選了「新娘整體造型」+「精緻韓系霧眉設計」
   // 兩個服務項目自動帶入相同的日期/時間/地點（客戶只填一次），可於建立訂單時各自調整
   'ri-1':{clientName:'黃雅琳',phone:'0912-345-678',serviceBlocks:[
-    {service:'新娘秘書',date:'2025-12-14',time:'05:30',loc:'台中金典酒店',people:'僅新娘',peopleNote:'',total:'',deposit:''},
-    {service:'精緻柔霧眉設計',date:'2025-12-14',time:'05:30',loc:'台中金典酒店',people:'僅新娘',peopleNote:'',total:'',deposit:''}
+    {service:'新娘秘書',date:'2025-12-14',loc:'台中金典酒店',venueAddress:'台中市西區館前路98號',people:'僅新娘',peopleNote:'媽媽加購妝髮 NT$3,000',total:'',deposit:''},
+    {service:'精緻柔霧眉設計',date:'2025-12-20',loc:'工作室',venueAddress:'',people:'僅新娘',peopleNote:'',total:'',deposit:''}
   ],skin:['敏感肌'],allergy:'含酒精',style:'韓系光澤感',note:''},
-  'ri-2':{clientName:'陳怡君',phone:'0923-456-789',serviceBlocks:[{service:'新娘試妝',date:'2025-12-20',time:'13:00',loc:'工作室',people:'僅新娘',peopleNote:'',total:'',deposit:''}],skin:['油性'],allergy:'',style:'自然清透感',note:''},
+  'ri-2':{clientName:'陳怡君',phone:'0923-456-789',serviceBlocks:[{service:'新娘試妝',date:'2025-12-20',loc:'工作室',venueAddress:'',people:'僅新娘',peopleNote:'',total:'',deposit:''}],skin:['油性'],allergy:'',style:'自然清透感',note:''},
 };
 
 let currentReviewId=null;
@@ -959,11 +959,15 @@ function confirmReview(id,name,pendingId){
 function updateReviewCountBadge(){
   const reviewCount=document.querySelectorAll('#reviewList .review-item').length -
     document.querySelectorAll('#reviewList .review-item[style*="opacity"]').length;
+  // update count badge
   const badge=document.getElementById('reviewCount');
   if(badge)badge.textContent=reviewCount;
-  // hide banner entirely if none left
+  // show/hide banner
   const banner=document.querySelector('.review-banner');
   if(banner)banner.style.display=reviewCount>0?'flex':'none';
+  // show/hide bell dot
+  const bellDot=document.getElementById('bellDot');
+  if(bellDot)bellDot.style.display=reviewCount>0?'block':'none';
 }
 
 function renderReviewItemActions(id){
@@ -1135,6 +1139,7 @@ function renderDayDetail(ds){
       <div class="tcard-meta">
         <div class="tmeta"><i class="ti ti-clock" style="font-size:12px"></i>${t.time}</div>
         <div class="tmeta"><i class="ti ti-map-pin" style="font-size:12px"></i>${t.loc}</div>
+        ${t.venueAddress?`<div class="tmeta"><i class="ti ti-building" style="font-size:12px"></i>${t.venueAddress}</div>`:''}
         ${t.people?`<div class="tmeta"><i class="ti ti-users" style="font-size:12px"></i>${t.people}</div>`:''}
         ${t.peopleNote?`<div class="tmeta" style="color:var(--rose-deep)"><i class="ti ti-receipt-2" style="font-size:12px"></i>加購備注</div>`:''}
       </div>
@@ -1162,7 +1167,8 @@ function openCalDetail(id){
     <div class="srow"><span class="skey">服務</span><span class="sval">${svcLabel(t.service)}</span></div>
     <div class="srow"><span class="skey">日期</span><span class="sval">${t.date}</span></div>
     <div class="srow"><span class="skey">時間</span><span class="sval">${t.time}</span></div>
-    <div class="srow"><span class="skey">地點</span><span class="sval">${t.loc}</span></div>
+    <div class="srow"><span class="skey">開妝地點</span><span class="sval">${t.loc}</span></div>
+    ${t.venueAddress?`<div class="srow"><span class="skey">宴客地址</span><span class="sval">${t.venueAddress}</span></div>`:''}
     <div class="srow"><span class="skey">人數</span><span class="sval">${t.people}</span></div>
     ${t.peopleNote?`<div class="srow"><span class="skey">加購備注</span><span class="sval" style="color:var(--rose-deep)">${t.peopleNote}</span></div>`:''}
     ${t.allergy?`<div class="srow"><span class="skey">過敏</span><span class="sval" style="color:var(--red)">${t.allergy}</span></div>`:''}
@@ -1639,7 +1645,7 @@ function copyReminderText(){
 
 // ADD ORDER
 let addStep=1;
-let addForm={isExisting:false,clientName:'',phone:'',serviceBlocks:[{service:'',date:'',time:'06:00',loc:'',people:'僅新娘',peopleNote:'',total:'',deposit:''}],skin:[],allergy:'',style:'自然清透感',note:'',tags:[]};
+let addForm={isExisting:false,clientName:'',phone:'',serviceBlocks:[{service:'',date:'',time:'06:00',loc:'',venueAddress:'',people:'僅新娘',peopleNote:'',total:'',deposit:''}],skin:[],allergy:'',style:'自然清透感',note:'',tags:[]};
 const EXISTING_CLIENTS=[{name:'陳雅婷',phone:'0923-456-789',orders:2},{name:'蔡佳穎',phone:'0956-789-012',orders:2},{name:'林怡君',phone:'0912-345-678',orders:1}];
 
 let prevPage='dashboard';
@@ -1652,7 +1658,7 @@ function openAddOrder(){
   document.getElementById('addCtaBar').style.display='flex';
   document.getElementById('addStepsBar').style.display='flex';
   addStep=1;
-  addForm={isExisting:false,clientName:'',phone:'',serviceBlocks:[{service:'',date:'',time:'06:00',loc:'',people:'僅新娘',peopleNote:'',total:'',deposit:''}],skin:[],allergy:'',style:'自然清透感',note:'',tags:[]};
+  addForm={isExisting:false,clientName:'',phone:'',serviceBlocks:[{service:'',date:'',time:'06:00',loc:'',venueAddress:'',people:'僅新娘',peopleNote:'',total:'',deposit:''}],skin:[],allergy:'',style:'自然清透感',note:'',tags:[]};
   renderAddSteps();renderAddForm();
 }
 function closeAddOrder(){
@@ -1715,7 +1721,8 @@ function renderAddForm(){
           <div class="field"><label class="fl">日期 <span class="req">*</span></label><input type="date" value="${b.date}" onchange="updateBlock(${i},'date',this.value)"></div>
           <div class="field"><label class="fl">時間</label><input type="time" value="${b.time}" onchange="updateBlock(${i},'time',this.value)"></div>
         </div>
-        <div class="field"><label class="fl">地點 <span class="req">*</span></label><input type="text" placeholder="飯店或場地" value="${b.loc}" oninput="updateBlock(${i},'loc',this.value)"></div>
+        <div class="field"><label class="fl">開妝地點 <span class="req">*</span></label><input type="text" placeholder="飯店或場地名稱" value="${b.loc}" oninput="updateBlock(${i},'loc',this.value)"></div>
+      <div class="field"><label class="fl">宴客地址</label><input type="text" placeholder="宴客場地完整地址" value="${b.venueAddress||''}" oninput="updateBlock(${i},'venueAddress',this.value)"></div>
         <div class="field"><label class="fl">服務人數</label>
           <select onchange="updateBlock(${i},'people',this.value)">
             ${['僅新娘（1 人）','新娘＋媽媽（2 人）','新娘＋媽媽＋婆婆（3 人）','新娘＋伴娘（2–4 人）','4 人以上'].map(o=>`<option ${b.people===o?'selected':''}>${o}</option>`).join('')}
@@ -1798,7 +1805,7 @@ function addToggleSkin(s){const i=addForm.skin.indexOf(s);i>-1?addForm.skin.spli
 // Service block management for Step 2
 function updateBlock(i,key,val){addForm.serviceBlocks[i][key]=val;}
 function addServiceBlock(){
-  addForm.serviceBlocks.push({service:'',date:'',time:'06:00',loc:'',people:'僅新娘',peopleNote:'',total:'',deposit:''});
+  addForm.serviceBlocks.push({service:'',date:'',time:'06:00',loc:'',venueAddress:'',people:'僅新娘',peopleNote:'',total:'',deposit:''});
   renderAddForm();
 }
 function removeServiceBlock(i){
@@ -1853,7 +1860,7 @@ function addSubmit(){
   const newOrders=addForm.serviceBlocks.map(b=>({
     id:nextOrderId++,bookingId,
     name:addForm.clientName,
-    service:b.service,date:b.date,time:b.time,loc:b.loc,people:b.people,peopleNote:b.peopleNote||'',
+    service:b.service,date:b.date,time:b.time,loc:b.loc,venueAddress:b.venueAddress||'',people:b.people,peopleNote:b.peopleNote||'',
     skin:[...addForm.skin],allergy:addForm.allergy,style:addForm.style,note:addForm.note,
     pay:'unpaid',deposit_amt:parseInt(b.deposit)||0,final_amt:parseInt(b.total)||0,
     tags:[...addForm.tags],status:'confirmed',
@@ -1875,7 +1882,7 @@ function addSubmit(){
   } else {
     clients.unshift({id:clients.length+10,name:addForm.clientName,phone:addForm.phone,skin:addForm.skin||[],allergy:addForm.allergy||'',style:addForm.style||'',note:addForm.note||'',repeat:newOrders.length>1,orders:newOrders.map(o=>({date:o.date,service:o.service,loc:o.loc}))});
   }
-  addForm={isExisting:false,clientName:'',phone:'',serviceBlocks:[{service:'',date:'',time:'06:00',loc:'',people:'僅新娘',peopleNote:'',total:'',deposit:''}],skin:[],allergy:'',style:'自然清透感',note:'',tags:[]};
+  addForm={isExisting:false,clientName:'',phone:'',serviceBlocks:[{service:'',date:'',time:'06:00',loc:'',venueAddress:'',people:'僅新娘',peopleNote:'',total:'',deposit:''}],skin:[],allergy:'',style:'自然清透感',note:'',tags:[]};
   saveData();
   document.getElementById('addFormContent').style.display='none';
   document.getElementById('addCtaBar').style.display='none';
@@ -2024,6 +2031,7 @@ function openEditSheet(id){
       <div class="field"><label class="fl">開妝時間</label><input type="time" id="editTime" value="${t.time}"></div>
     </div>
     <div class="field"><label class="fl">開妝地點</label><input type="text" id="editLoc" value="${t.loc}" placeholder="飯店或場地"></div>
+    <div class="field"><label class="fl">宴客地址</label><input type="text" id="editVenueAddress" value="${t.venueAddress||''}" placeholder="宴客場地完整地址"></div>
     <div class="field"><label class="fl">服務人數</label>
       <select id="editPeople">
         ${['僅新娘（1 人）','新娘＋媽媽（2 人）','新娘＋媽媽＋婆婆（3 人）','新娘＋伴娘（2–4 人）','4 人以上'].map(o=>`<option ${t.people===o?'selected':''}>${o}</option>`).join('')}
@@ -2051,6 +2059,7 @@ function saveEditOrder(){
   t.loc=document.getElementById('editLoc').value;
   t.people=document.getElementById('editPeople').value;
   t.peopleNote=document.getElementById('editPeopleNote').value;
+  t.venueAddress=document.getElementById('editVenueAddress').value;
   t.updatedAt=new Date().toISOString();
   t.allergy=document.getElementById('editAllergy').value;
   t.final_amt=parseInt(document.getElementById('editTotal').value)||t.final_amt;
@@ -2220,8 +2229,8 @@ function updatePendingList(pendingItems){
       </div><div class="ri-time">${timeAgo}</div></div>
       <div class="ri-metas">
         <div class="ri-meta"><i class="ti ti-calendar" style="font-size:12px"></i>${item.date||'—'}</div>
-        <div class="ri-meta"><i class="ti ti-clock" style="font-size:12px"></i>${item.time||'—'}</div>
         <div class="ri-meta"><i class="ti ti-map-pin" style="font-size:12px"></i>${item.loc||'—'}</div>
+        ${item.venueAddress?`<div class="ri-meta"><i class="ti ti-building" style="font-size:12px"></i>${item.venueAddress}</div>`:''}
         <div class="ri-meta"><i class="ti ti-phone" style="font-size:12px"></i>${item.phone||'—'}</div>
       </div>
       ${item.allergy||item.skin.length?`<div class="ri-note">膚質：${item.skin.join('、')||'未填'}${item.allergy?'・過敏：'+item.allergy:''}${item.style?'・風格：'+item.style:''}</div>`:''}
@@ -2236,8 +2245,8 @@ function updatePendingList(pendingItems){
     reviewData['ri-'+item.id]={
       clientName:item.clientName, phone:item.phone,
       serviceBlocks: Array.isArray(item.services)
-        ? item.services.map(s=>({service:s,date:item.date,time:item.time,loc:item.loc,people:item.people||'僅新娘',peopleNote:item.peopleNote||'',total:'',deposit:''}))
-        : [{service:item.services,date:item.date,time:item.time,loc:item.loc,people:item.people||'僅新娘',peopleNote:item.peopleNote||'',total:'',deposit:''}],
+        ? item.services.map(s=>({service:s,date:item.date,loc:item.loc,venueAddress:item.venueAddress||'',people:item.people||'僅新娘',peopleNote:item.peopleNote||'',total:'',deposit:''}))
+        : [{service:item.services,date:item.date,loc:item.loc,venueAddress:item.venueAddress||'',people:item.people||'僅新娘',peopleNote:item.peopleNote||'',total:'',deposit:''}],
       skin:item.skin||[], allergy:item.allergy||'', style:item.style||'', note:item.note||''
     };
   });
@@ -2315,6 +2324,7 @@ function buildExcelReport(){
       日期:o.date,
       時間:o.time,
       地點:o.loc,
+      宴客地址:o.venueAddress||'',
       服務人數:o.people,
       人數備注:o.peopleNote||'',
       膚質:(o.skin||[]).join('、'),
