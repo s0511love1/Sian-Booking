@@ -957,9 +957,16 @@ function confirmReview(elId, name, pendingId){
   ctaEl.style.display='flex';
   stepsEl.style.display='flex';
   overlay.classList.add('show');
+  console.log('[confirmReview] overlay display:', overlay.style.display, 'classList:', overlay.className);
+  console.log('[confirmReview] addForm:', JSON.stringify({
+    clientName: addForm.clientName,
+    serviceBlocks: addForm.serviceBlocks?.length,
+    step: addStep
+  }));
 
   renderAddSteps();
   renderAddForm();
+  console.log('[confirmReview] renderAddForm done, formContent:', document.getElementById('addFormContent')?.innerHTML?.slice(0,100));
 
   // 顯示帶入提示
   if(data){
