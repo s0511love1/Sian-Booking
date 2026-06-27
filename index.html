@@ -610,41 +610,12 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
     <div class="sheet">
       <div class="sheet-handle"></div>
       <div class="sheet-head">
-        <div class="sheet-title">待審核預約表單 <span style="font-size:13px;color:var(--red);font-weight:400">（2 筆）</span></div>
+        <div class="sheet-title">待審核預約表單 <span id="reviewSheetCount" style="font-size:13px;color:var(--red);font-weight:400"></span></div>
         <span class="sheet-close" onclick="closeSheet('reviewSheet')"><i class="ti ti-x"></i></span>
       </div>
       <div id="reviewList">
-        <div class="review-item" id="ri-1">
-          <div class="ri-top"><div><div class="ri-name">黃雅琳</div><div class="ri-svc">新娘秘書、精緻柔霧眉設計 <span style="background:var(--rose-light);color:var(--rose-deep);font-size:10px;padding:1px 7px;border-radius:20px;font-weight:500;margin-left:4px">複選 2 項</span></div></div><div class="ri-time">剛剛</div></div>
-          <div class="ri-metas">
-            <div class="ri-meta"><i class="ti ti-calendar" style="font-size:12px"></i>2025-12-14</div>
-            <div class="ri-meta"><i class="ti ti-clock" style="font-size:12px"></i>05:30</div>
-            <div class="ri-meta"><i class="ti ti-map-pin" style="font-size:12px"></i>台中金典酒店</div>
-            <div class="ri-meta"><i class="ti ti-phone" style="font-size:12px"></i>0912-345-678</div>
-          </div>
-          <div class="ri-note">膚質：敏感肌・過敏：含酒精・風格：韓系光澤感<br><span style="color:var(--rose-deep)">⚡ 建立訂單後將自動產生 2 個服務項目區塊，可分別調整日期</span></div>
-          <div class="ri-actions">
-            <div class="ri-btn danger" onclick="rejectReview('ri-1')"><i class="ti ti-x"></i> 婉拒</div>
-            <div class="ri-btn primary" onclick="confirmReview('ri-1','黃雅琳')"><i class="ti ti-check"></i> 建立訂單</div>
-          </div>
-        </div>
-        <div class="review-item" id="ri-2">
-          <div class="ri-top"><div><div class="ri-name">陳怡君</div><div class="ri-svc">婚前試妝</div></div><div class="ri-time">2 小時前</div></div>
-          <div class="ri-metas">
-            <div class="ri-meta"><i class="ti ti-calendar" style="font-size:12px"></i>2025-12-20</div>
-            <div class="ri-meta"><i class="ti ti-clock" style="font-size:12px"></i>13:00</div>
-            <div class="ri-meta"><i class="ti ti-map-pin" style="font-size:12px"></i>工作室</div>
-            <div class="ri-meta"><i class="ti ti-phone" style="font-size:12px"></i>0923-456-789</div>
-          </div>
-          <div class="ri-note">膚質：油性・風格：自然清透感</div>
-          <div class="ri-actions">
-            <div class="ri-btn danger" onclick="rejectReview('ri-2')"><i class="ti ti-x"></i> 婉拒</div>
-            <div class="ri-btn primary" onclick="confirmReview('ri-2','陳怡君')"><i class="ti ti-check"></i> 建立訂單</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+        <div style="text-align:center;padding:32px 20px;color:var(--sub);font-size:13px;line-height:1.8">正在載入待審核表單…</div>
+      </div></div>
 
   <!-- calendar order detail sheet -->
   <div class="sheet-bg" id="calDetailSheet" onclick="bgClose(event,'calDetailSheet')">
@@ -655,8 +626,9 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
         <span class="sheet-close" onclick="closeSheet('calDetailSheet')"><i class="ti ti-x"></i></span>
       </div>
       <div class="sheet-body" id="calDetailBody"></div>
-      <div class="sheet-actions">
+      <div class="sheet-actions" style="grid-template-columns:1fr 1fr 1fr">
         <div class="sact" onclick="openEditSheet(calDetailTaskId)"><i class="ti ti-edit"></i> 編輯</div>
+        <div class="sact" onclick="exportContract(calDetailTaskId)"><i class="ti ti-file-text"></i> 合約書</div>
         <div class="sact primary" onclick="openPayConfirm(calDetailTaskId,'sheet')"><i class="ti ti-check"></i> 確認收款</div>
       </div>
     </div>
@@ -839,6 +811,24 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 
   <div class="toast" id="toast"></div>
 
+  <!-- CONTRACT RESULT MODAL -->
+  <div class="exp-modal-bg" id="contractModal" onclick="bgClose(event,'contractModal')">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <div class="sheet-title">合約書已產生</div>
+        <span class="sheet-close" onclick="closeSheet('contractModal')"><i class="ti ti-x"></i></span>
+      </div>
+      <div class="sheet-body">
+        <div id="contractResult"></div>
+        <div class="sheet-actions" style="border:none;padding:0;margin-top:14px">
+          <div class="sact" onclick="closeSheet('contractModal')">關閉</div>
+          <div class="sact primary" id="contractOpenBtn" onclick="openContractUrl()"><i class="ti ti-external-link"></i> 開啟合約書</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div><!-- #app -->
 
 <script>
@@ -903,16 +893,8 @@ function openReviewSheet(){document.getElementById('reviewSheet').classList.add(
 function closeSheet(id){document.getElementById(id).classList.remove('show');}
 function bgClose(e,id){if(e.target===document.getElementById(id))closeSheet(id);}
 
-// Store review items data for pre-filling
-const reviewData={
-  // 範例：客戶在預約表單複選了「新娘整體造型」+「精緻韓系霧眉設計」
-  // 兩個服務項目自動帶入相同的日期/時間/地點（客戶只填一次），可於建立訂單時各自調整
-  'ri-1':{clientName:'黃雅琳',phone:'0912-345-678',serviceBlocks:[
-    {service:'新娘秘書',date:'2025-12-14',loc:'台中金典酒店',venueAddress:'台中市西區館前路98號',people:'僅新娘',peopleNote:'媽媽加購妝髮 NT$3,000',total:'',deposit:''},
-    {service:'精緻柔霧眉設計',date:'2025-12-20',loc:'工作室',venueAddress:'',people:'僅新娘',peopleNote:'',total:'',deposit:''}
-  ],skin:['敏感肌'],allergy:'含酒精',style:'韓系光澤感',note:''},
-  'ri-2':{clientName:'陳怡君',phone:'0923-456-789',serviceBlocks:[{service:'新娘試妝',date:'2025-12-20',loc:'工作室',venueAddress:'',people:'僅新娘',peopleNote:'',total:'',deposit:''}],skin:['油性'],allergy:'',style:'自然清透感',note:''},
-};
+// reviewData：由 updatePendingList() 從雲端資料動態填入，不使用靜態示範資料
+const reviewData={};
 
 let currentReviewId=null;
 let currentPendingId=null;
@@ -968,6 +950,9 @@ function updateReviewCountBadge(){
   // show/hide bell dot
   const bellDot=document.getElementById('bellDot');
   if(bellDot)bellDot.style.display=reviewCount>0?'block':'none';
+  // update sheet title count
+  const sheetCount=document.getElementById('reviewSheetCount');
+  if(sheetCount)sheetCount.textContent=reviewCount>0?`（${reviewCount} 筆）`:'';
 }
 
 function renderReviewItemActions(id){
@@ -1164,6 +1149,7 @@ function openCalDetail(id){
   const siblings=orders.filter(o=>o.bookingId&&o.bookingId===t.bookingId&&o.id!==t.id);
   document.getElementById('calDetailBody').innerHTML=`
     ${siblings.length?`<div style="background:var(--rose-bg);border-radius:8px;padding:9px 12px;margin-bottom:12px;font-size:12px;color:var(--rose-deep)"><i class="ti ti-link" style="margin-right:5px"></i>同次預約還有：${siblings.map(s=>s.service+'（'+s.date+'）').join('、')}</div>`:''}
+    ${t.clientId?`<div class="srow"><span class="skey">客戶編號</span><span class="sval" style="font-family:var(--font-en);letter-spacing:0.1em;color:var(--rose-deep)">${t.clientId}</span></div>`:''}
     <div class="srow"><span class="skey">服務</span><span class="sval">${svcLabel(t.service)}</span></div>
     <div class="srow"><span class="skey">日期</span><span class="sval">${t.date}</span></div>
     <div class="srow"><span class="skey">時間</span><span class="sval">${t.time}</span></div>
@@ -2543,6 +2529,52 @@ function dismissSplash(){
     splash.style.opacity='0';
     setTimeout(()=>{splash.style.display='none';}, 400);
   }, 700);
+}
+
+// ============================================================
+// CONTRACT EXPORT
+// ============================================================
+let contractUrl = '';
+
+async function exportContract(id){
+  const t = orders.find(x => x.id === id);
+  if(!t) return;
+  if(!isCloudReady()){
+    alert('需要雲端連線才能產生合約書，請確認網路連線後再試');
+    return;
+  }
+  showLoadingOverlay('正在產生合約書…');
+  try{
+    const result = await callAPI({ action:'generateContract', orderId:id });
+    contractUrl = result.pdfUrl;
+    // update clientId in local order
+    t.clientId = result.clientId;
+    saveToLocal();
+    // refresh detail if open
+    if(calDetailTaskId === id) openCalDetail(id);
+    hideLoadingOverlay();
+    // show result modal
+    document.getElementById('contractResult').innerHTML=`
+      <div style="text-align:center;padding:12px 0">
+        <div style="width:48px;height:48px;background:var(--green-bg);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:22px;color:var(--green)"><i class="ti ti-check"></i></div>
+        <div style="font-size:15px;font-weight:500;color:var(--text);margin-bottom:6px">${t.name}・合約書</div>
+        <div style="font-size:13px;color:var(--sub);margin-bottom:4px">客戶編號：${result.clientId}</div>
+        <div style="font-size:12px;color:var(--sub)">${result.fileName}</div>
+      </div>
+      <div style="background:var(--warm);border-radius:8px;padding:10px 14px;margin-top:12px;font-size:12px;color:var(--sub);line-height:1.8">
+        <i class="ti ti-info-circle" style="margin-right:5px"></i>
+        合約書已儲存至 Google Drive，點「開啟合約書」可預覽或分享連結給客戶
+      </div>`;
+    document.getElementById('contractModal').classList.add('show');
+    showToast('✓ 合約書已產生');
+  } catch(err){
+    hideLoadingOverlay();
+    alert('合約書產生失敗：' + err.message);
+  }
+}
+
+function openContractUrl(){
+  if(contractUrl) window.open(contractUrl, '_blank');
 }
 
 // INIT
