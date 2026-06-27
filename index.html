@@ -960,7 +960,11 @@ function confirmReview(elId, pendingId){
   formEl.style.display='block';
   ctaEl.style.display='flex';
   stepsEl.style.display='flex';
-  overlay.classList.add('show');
+  overlay.style.display='flex';
+  overlay.style.zIndex='10000';
+  overlay.style.position='fixed';
+  overlay.style.inset='0';
+  overlay.style.background='var(--warm)';
 
   renderAddSteps();
   renderAddForm();
@@ -1682,7 +1686,7 @@ let prevPage='dashboard';
 function openAddOrder(){
   const active=document.querySelector('.nav-item.active');
   prevPage=active?active.id.replace('nav-',''):'dashboard';
-  document.getElementById('addOrderOverlay').classList.add('show');
+  document.getElementById('addOrderOverlay').style.display='flex';
   document.getElementById('addSuccess').style.display='none';
   document.getElementById('addFormContent').style.display='block';
   document.getElementById('addCtaBar').style.display='flex';
@@ -1703,7 +1707,7 @@ function closeAddOrder(){
     currentReviewId=null;
     updateReviewCountBadge();
   }
-  document.getElementById('addOrderOverlay').classList.remove('show');
+  document.getElementById('addOrderOverlay').style.display='none';
   navTo(prevPage);
 }
 
@@ -1749,7 +1753,7 @@ function renderAddForm(){
         </div>
         <div class="drow">
           <div class="field"><label class="fl">日期 <span class="req">*</span></label><input type="date" value="${b.date}" onchange="updateBlock(${i},'date',this.value)"></div>
-          <div class="field"><label class="fl">時間</label><input type="time" value="${b.time}" onchange="updateBlock(${i},'time',this.value)"></div>
+          <div class="field"><label class="fl">時間</label><input type="time" value="${b.time||''}" onchange="updateBlock(${i},'time',this.value)"></div>
         </div>
         <div class="field"><label class="fl">開妝地點 <span class="req">*</span></label><input type="text" placeholder="飯店或場地名稱" value="${b.loc}" oninput="updateBlock(${i},'loc',this.value)"></div>
       <div class="field"><label class="fl">宴客地址</label><input type="text" placeholder="宴客場地完整地址" value="${b.venueAddress||''}" oninput="updateBlock(${i},'venueAddress',this.value)"></div>
