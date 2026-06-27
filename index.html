@@ -1164,13 +1164,14 @@ function renderDayDetail(ds){
   const detail=document.getElementById('dayDetail');
   const d=new Date(ds);const wd=['日','一','二','三','四','五','六'];
   const label=`${d.getMonth()+1} 月 ${d.getDate()} 日（${wd[d.getDay()]}）`;
-  const dt=orders.filter(o=>o.date===ds).sort((a,b)=>a.time.localeCompare(b.time));
+  const dt=orders.filter(o=>o.date===ds).sort((a,b)=>(a.time||'').localeCompare(b.time||''));
   if(!dt.length){detail.innerHTML=`<div class="detail-head">${label}</div><div class="empty-day"><i class="ti ti-calendar-off" style="font-size:28px;display:block;margin-bottom:8px;color:var(--line)"></i>這天沒有排程<br><span style="font-size:12px">點右上角新增訂單</span></div>`;return;}
   detail.innerHTML=`<div class="detail-head">${label}・${dt.length} 筆</div>`+dt.map(t=>`
     <div class="tcard ${t.pay}">
       <div class="tcard-top"><div><div class="tcard-name">${t.name}</div><div class="tcard-svc">${svcLabel(t.service)}</div></div><span class="badge badge-${t.pay}">${PAY_LABEL[t.pay]}</span></div>
       <div class="tcard-meta">
-        <div class="tmeta"><i class="ti ti-clock" style="font-size:12px"></i>${t.time}</div>
+        ${t.time?`<div class="tmeta"><i class="ti ti-clock" style="font-size:12px"></i>${t.time}</div>`:''}
+
         <div class="tmeta"><i class="ti ti-map-pin" style="font-size:12px"></i>${t.loc}</div>
         ${t.venueAddress?`<div class="tmeta"><i class="ti ti-building" style="font-size:12px"></i>${t.venueAddress}</div>`:''}
         ${t.people?`<div class="tmeta"><i class="ti ti-users" style="font-size:12px"></i>${t.people}</div>`:''}
@@ -1801,6 +1802,13 @@ function renderAddForm(){
       </div>
     `).join('');
 
+    // 強制讀取目前畫面上的金額輸入框（避免尚未 blur 的值沒存入）
+    addForm.serviceBlocks.forEach((b,i)=>{
+      const totalEl=document.getElementById('blockTotal'+i);
+      const depositEl=document.getElementById('blockDeposit'+i);
+      if(totalEl)b.total=totalEl.value;
+      if(depositEl)b.deposit=depositEl.value;
+    });
     const grandTotal=addForm.serviceBlocks.reduce((s,b)=>s+(parseInt(b.total)||0),0);
 
     c.innerHTML=`
