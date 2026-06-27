@@ -2204,11 +2204,12 @@ function updatePendingList(pendingItems){
     return;
   }
   list.innerHTML=pendingItems.map(item=>{
+    const safeId='ri-'+item.id.replace(/[^a-zA-Z0-9-]/g,'_');
     const svcLabel=Array.isArray(item.services)?item.services.join('、'):item.services||'';
     const multi=Array.isArray(item.services)&&item.services.length>1;
     const dt=new Date(item.submittedAt);
-    const timeAgo=isNaN(dt)?'':'剛剛';
-    return`<div class="review-item" id="ri-${item.id}">
+    const timeAgo=isNaN(dt)?'剛剛':formatTimeAgo(dt);
+    return`<div class="review-item" id="${safeId}">
       <div class="ri-top"><div>
         <div class="ri-name">${item.clientName}</div>
         <div class="ri-svc">${svcLabel}${multi?` <span style="background:var(--rose-light);color:var(--rose-deep);font-size:10px;padding:1px 7px;border-radius:20px;font-weight:500;margin-left:4px">複選 ${item.services.length} 項</span>`:''}</div>
@@ -2221,14 +2222,15 @@ function updatePendingList(pendingItems){
       </div>
       ${item.allergy||item.skin.length?`<div class="ri-note">膚質：${item.skin.join('、')||'未填'}${item.allergy?'・過敏：'+item.allergy:''}${item.style?'・風格：'+item.style:''}</div>`:''}
       <div class="ri-actions">
-        <div class="ri-btn danger" onclick="rejectReview('ri-${item.id}','${item.id}')"><i class="ti ti-x"></i> 婉拒</div>
-        <div class="ri-btn primary" onclick="confirmReview('ri-${item.id}','${item.clientName}','${item.id}')"><i class="ti ti-check"></i> 建立訂單</div>
+        <div class="ri-btn danger" data-elid="${safeId}" data-pid="${item.id}" onclick="rejectReview(this.dataset.elid,this.dataset.pid)"><i class="ti ti-x"></i> 婉拒</div>
+        <div class="ri-btn primary" data-elid="${safeId}" data-name="${item.clientName.replace(/"/g,'')}" data-pid="${item.id}" onclick="confirmReview(this.dataset.elid,this.dataset.name,this.dataset.pid)"><i class="ti ti-check"></i> 建立訂單</div>
       </div>
     </div>`;
   }).join('');
   // 同時更新 reviewData（給 confirmReview 用）
   pendingItems.forEach(item=>{
-    reviewData['ri-'+item.id]={
+    const safeId='ri-'+item.id.replace(/[^a-zA-Z0-9-]/g,'_');
+    reviewData[safeId]={
       clientName:item.clientName, phone:item.phone,
       serviceBlocks: Array.isArray(item.services)
         ? item.services.map(s=>({service:s,date:item.date,loc:item.loc,venueAddress:item.venueAddress||'',people:item.people||'僅新娘',peopleNote:item.peopleNote||'',total:'',deposit:''}))
@@ -2237,6 +2239,16 @@ function updatePendingList(pendingItems){
     };
   });
   updateReviewCountBadge();
+}
+
+function formatTimeAgo(dt){
+  const diff=Date.now()-dt.getTime();
+  const mins=Math.floor(diff/60000);
+  if(mins<1)return '剛剛';
+  if(mins<60)return mins+'分鐘前';
+  const hrs=Math.floor(mins/60);
+  if(hrs<24)return hrs+'小時前';
+  return Math.floor(hrs/24)+'天前';
 }
 
 function showToast(msg){
