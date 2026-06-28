@@ -1769,9 +1769,7 @@ function renderAddForm(){
         <div class="field"><label class="fl">開妝地點 <span class="req">*</span></label><input type="text" placeholder="飯店或場地名稱" value="${b.loc}" oninput="updateBlock(${i},'loc',this.value)"></div>
       <div class="field"><label class="fl">宴客地址</label><input type="text" placeholder="宴客場地完整地址" value="${b.venueAddress||''}" oninput="updateBlock(${i},'venueAddress',this.value)"></div>
         <div class="field"><label class="fl">服務人數</label>
-          <select onchange="updateBlock(${i},'people',this.value)">
-            ${['僅新娘（1 人）','新娘＋媽媽（2 人）','新娘＋媽媽＋婆婆（3 人）','新娘＋伴娘（2–4 人）','4 人以上'].map(o=>`<option ${b.people===o?'selected':''}>${o}</option>`).join('')}
-          </select>
+          <input type="text" placeholder="例：新娘＋媽媽（2 人）" value="${b.people||''}" oninput="updateBlock(${i},'people',this.value)">
         </div>
         <div class="field" style="margin-bottom:0"><label class="fl">人數備注／加購說明</label>
           <textarea placeholder="例：媽媽加購妝髮 NT$3,000…" onblur="updateBlock(${i},'peopleNote',this.value)" style="min-height:50px">${b.peopleNote}</textarea>
@@ -2038,27 +2036,35 @@ function applyPayConfirm(){
       t.pay='deposit';
     } else if(selectedPayOpt==='paid'){
       if(enteredAmt<=0){alert('請輸入收到的金額');return;}
-      // received_amt = total actually received (deposit already received + this payment)
       const prevDeposit=t.pay==='deposit'?(t.deposit_amt||0):0;
       t.received_amt=prevDeposit+enteredAmt;
       t.pay='paid';
     }
+    t.updatedAt=new Date().toISOString();
   }
+
+  // 先儲存，再 UI 更新
   saveData();
-  if(isCloudReady()){ cloudSave('updateOrder',{order:orders.find(x=>x.id===payConfirmTaskId)}); }
-  closePayConfirm();
-  // refresh views
+  if(isCloudReady()){ cloudSave('updateOrder',{order:t}); }
+
+  // 記住來源，關閉 modal 前先存起來
+  const source=payConfirmSource;
+  const taskId=payConfirmTaskId;
+
+  // 關閉 modal
+  document.getElementById('payConfirmModal').classList.remove('show');
+  payConfirmTaskId=null; selectedPayOpt=null; payConfirmSource=null;
+
+  // 刷新所有頁面
   if(calSelDate)renderDayDetail(calSelDate);
   renderCalendar();
   renderPayment();
   renderDashStats();
   renderDashToday();
-  // re-open detail sheet if came from sheet
-  if(payConfirmSource==='sheet'&&payConfirmTaskId){
-    setTimeout(()=>openCalDetail(payConfirmTaskId),100);
-  }
-  if(payConfirmSource==='list'){
-    renderPayment();
+
+  // 重新開啟訂單細節（從日曆 sheet 來的）
+  if(source==='sheet'&&taskId){
+    setTimeout(()=>openCalDetail(taskId),150);
   }
 }
 
@@ -2093,9 +2099,7 @@ function openEditSheet(id){
     <div class="field"><label class="fl">開妝地點</label><input type="text" id="editLoc" value="${t.loc}" placeholder="飯店或場地"></div>
     <div class="field"><label class="fl">宴客地址</label><input type="text" id="editVenueAddress" value="${t.venueAddress||''}" placeholder="宴客場地完整地址"></div>
     <div class="field"><label class="fl">服務人數</label>
-      <select id="editPeople">
-        ${['僅新娘（1 人）','新娘＋媽媽（2 人）','新娘＋媽媽＋婆婆（3 人）','新娘＋伴娘（2–4 人）','4 人以上'].map(o=>`<option ${t.people===o?'selected':''}>${o}</option>`).join('')}
-      </select>
+      <div class="field"><label class="fl">服務人數</label><input type="text" id="editPeople" value="${t.people||''}" placeholder="例：新娘＋媽媽（2 人）"></div>
     </div>
     <div class="field"><label class="fl">人數備注／加購說明</label>
       <textarea id="editPeopleNote" style="min-height:60px" placeholder="例：媽媽加購妝髮 NT$3,000…">${t.peopleNote||''}</textarea>
