@@ -997,8 +997,7 @@ function confirmReview(elId, pendingId){
 }
 
 function updateReviewCountBadge(){
-  const reviewCount=document.querySelectorAll('#reviewList .review-item').length -
-    document.querySelectorAll('#reviewList .review-item[style*="opacity"]').length;
+  const reviewCount=Object.keys(reviewData).length;
   // update count badge
   const badge=document.getElementById('reviewCount');
   if(badge)badge.textContent=reviewCount;
@@ -1052,9 +1051,9 @@ function renderDashStats(){
   const monthOrders=orders.filter(o=>{const d=new Date(o.date);return d.getFullYear()===y&&d.getMonth()===m;});
   const totalRecv=monthOrders.reduce((s,o)=>s+calcRecv(o),0);
   const totalPend=monthOrders.reduce((s,o)=>s+calcPend(o),0);
-  const pendingFinal=monthOrders.filter(o=>o.pay!=='paid'&&o.pay!=='unpaid').length; // 已付訂金, 待收尾款
-  const reviewCount=document.querySelectorAll('#reviewList .review-item').length -
-    document.querySelectorAll('#reviewList .review-item[style*="opacity"]').length;
+  const pendingFinal=monthOrders.filter(o=>o.pay!=='paid'&&o.pay!=='unpaid').length;
+  // 待審核數：從 reviewData 讀取（不依賴 DOM）
+  const reviewCount=Object.keys(reviewData).length;
   const goal=100000;
   const pct=Math.min(Math.round(totalRecv/goal*100),100);
 
