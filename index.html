@@ -2744,34 +2744,33 @@ function openContractUrl(){
 
 // INIT
 async function initApp(){
+  // Step 1: 先從本機快取渲染（快速，避免白畫面）
   try {
-    // 先從本機快取快速渲染（避免等待雲端時白畫面）
     loadFromLocal();
-    renderCalendar();
-    renderPayment();
-    renderClients();
-    renderDashToday();
-    renderDashStats();
-    updateReviewCountBadge();
-  } catch(e) {
-    console.error('initApp render error:', e);
-  } finally {
-    // 不管成功失敗，一定關閉啟動畫面
-    dismissSplash();
+  } catch(e) { console.warn('loadFromLocal error:', e); }
+
+  // Step 2: 渲染所有頁面
+  function renderAll(){
+    try { renderCalendar(); } catch(e) { console.warn('renderCalendar:', e); }
+    try { renderPayment(); } catch(e) { console.warn('renderPayment:', e); }
+    try { renderClients(); } catch(e) { console.warn('renderClients:', e); }
+    try { renderDashToday(); } catch(e) { console.warn('renderDashToday:', e); }
+    try { renderDashStats(); } catch(e) { console.warn('renderDashStats:', e); }
+    try { updateReviewCountBadge(); } catch(e) { console.warn('updateReviewCountBadge:', e); }
   }
+
+  renderAll();
+
+  // Step 3: 關閉啟動畫面（不管上面有沒有出錯）
+  dismissSplash();
+
+  // Step 4: 從雲端同步最新資料
   try {
-    // 再從雲端同步最新資料
     await syncFromCloud();
-    // 同步後重新渲染
-    renderCalendar();
-    renderPayment();
-    renderClients();
-    renderDashToday();
-    renderDashStats();
-    updateReviewCountBadge();
-  } catch(e) {
-    console.error('initApp sync error:', e);
-  }
+  } catch(e) { console.warn('syncFromCloud error:', e); }
+
+  // Step 5: 同步完成後重新渲染
+  renderAll();
 }
 initApp();
 </script>
