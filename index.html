@@ -1918,6 +1918,7 @@ function addSubmit(){
   const newOrders=addForm.serviceBlocks.map(b=>({
     id:nextOrderId++,bookingId,
     name:addForm.clientName,
+    phone:addForm.phone||'',
     service:b.service,date:b.date,time:b.time,loc:b.loc,venueAddress:b.venueAddress||'',people:b.people,peopleNote:b.peopleNote||'',
     skin:[...addForm.skin],allergy:addForm.allergy,style:addForm.style,note:addForm.note,
     pay:'unpaid',deposit_amt:parseInt(b.deposit)||0,final_amt:parseInt(b.total)||0,
