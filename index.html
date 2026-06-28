@@ -1475,7 +1475,7 @@ function renderClients(){
   if(clientView==='list'){
     const filtered=clients.filter(c=>{
       const ms=!clientSearch||c.name.toLowerCase().includes(clientSearch);
-      const mf=clientFilter==='all'||(clientFilter==='repeat'&&c.repeat)||(clientFilter==='allergy'&&c.allergy)||(clientFilter==='sensitive'&&c.skin.includes('敏感肌'));
+      const mf=clientFilter==='all'||(clientFilter==='repeat'&&c.repeat)||(clientFilter==='allergy'&&c.allergy)||(clientFilter==='sensitive'&&(c.skin||[]).includes('敏感肌'));
       return ms&&mf;
     });
     content.innerHTML=`<div style="padding:12px 16px ${filtered.length?'0':'12px'}">`+
@@ -1486,7 +1486,7 @@ function renderClients(){
             <div class="cname-row"><span class="cname">${c.name}</span>${c.repeat?'<span class="repeat-badge">回頭客</span>':''}</div>
             <div style="font-size:12px;color:var(--sub);margin:2px 0">${c.phone}</div>
             <div class="ctags">
-              ${c.skin.map(s=>`<span class="ctag ${s==='敏感肌'||s==='痘痘肌'?'warn':''}">${s}</span>`).join('')}
+              ${(c.skin||[]).map(s=>`<span class="ctag ${s==='敏感肌'||s==='痘痘肌'?'warn':''}">${s}</span>`).join('')}
               ${c.allergy?`<span class="ctag warn">⚠ ${c.allergy}</span>`:''}
             </div>
           </div>
@@ -1635,7 +1635,7 @@ function ecToggleSkin(s){
   if(!c.skin)c.skin=[];
   const i=c.skin.indexOf(s);
   i>-1?c.skin.splice(i,1):c.skin.push(s);
-  document.getElementById('ecSkinChips').innerHTML=SKINS.map(sv=>`<div class="chip ${c.skin.includes(sv)?'on':''}" onclick="ecToggleSkin('${sv}')">${sv}</div>`).join('');
+  document.getElementById('ecSkinChips').innerHTML=SKINS.map(sv=>`<div class="chip ${(c.skin||[]).includes(sv)?'on':''}" onclick="ecToggleSkin('${sv}')">${sv}</div>`).join('');
 }
 function saveEditClient(){
   const c=clients.find(x=>x.id===editClientId);
@@ -1787,7 +1787,7 @@ function renderAddForm(){
     c.innerHTML=`
       <div class="sec-divider">膚質</div>
       <div class="chips" style="margin-bottom:14px">
-        ${SKINS.map(s=>`<div class="chip ${addForm.skin.includes(s)?'on':''}" onclick="addToggleSkin('${s}')">${s}</div>`).join('')}
+        ${SKINS.map(s=>`<div class="chip ${(addForm.skin||[]).includes(s)?'on':''}" onclick="addToggleSkin('${s}')">${s}</div>`).join('')}
       </div>
       <div class="field"><label class="fl">過敏成分</label><input type="text" placeholder="例：含酒精、防腐劑" value="${addForm.allergy}" oninput="addForm.allergy=this.value"></div>
       <div class="sec-divider">風格偏好</div>
@@ -2745,24 +2745,34 @@ function openContractUrl(){
 
 // INIT
 async function initApp(){
-  // 先從本機快取快速渲染（避免等待雲端時白畫面）
-  loadFromLocal();
-  renderCalendar();
-  renderPayment();
-  renderClients();
-  renderDashToday();
-  renderDashStats();
-  updateReviewCountBadge();
-  dismissSplash();
-  // 再從雲端同步最新資料
-  await syncFromCloud();
-  // 同步後重新渲染
-  renderCalendar();
-  renderPayment();
-  renderClients();
-  renderDashToday();
-  renderDashStats();
-  updateReviewCountBadge();
+  try {
+    // 先從本機快取快速渲染（避免等待雲端時白畫面）
+    loadFromLocal();
+    renderCalendar();
+    renderPayment();
+    renderClients();
+    renderDashToday();
+    renderDashStats();
+    updateReviewCountBadge();
+  } catch(e) {
+    console.error('initApp render error:', e);
+  } finally {
+    // 不管成功失敗，一定關閉啟動畫面
+    dismissSplash();
+  }
+  try {
+    // 再從雲端同步最新資料
+    await syncFromCloud();
+    // 同步後重新渲染
+    renderCalendar();
+    renderPayment();
+    renderClients();
+    renderDashToday();
+    renderDashStats();
+    updateReviewCountBadge();
+  } catch(e) {
+    console.error('initApp sync error:', e);
+  }
 }
 initApp();
 </script>
