@@ -1489,7 +1489,7 @@ function renderClients(){
               ${c.allergy?`<span class="ctag warn">⚠ ${c.allergy}</span>`:''}
             </div>
           </div>
-          <div class="cright"><div class="corder-count">${(c.orders||[]).length} 筆</div><div class="clast">${c.orders&&c.orders[0]?c.orders[0].date:c.lastServiceDate||''}</div></div>
+          <div class="cright"><div class="corder-count">${c.orderCount||0} 筆</div><div class="clast">${c.lastServiceDate||''}</div></div>
         </div>`).join('')
       :'<div style="text-align:center;padding:32px 0;color:var(--sub);font-size:13px">沒有符合的客戶</div>')+'</div>';
   } else {
@@ -1565,7 +1565,7 @@ function openClientDetail(id){
     </div>
     <div class="profile-sec">
       <div class="sec-title" style="margin-bottom:10px">歷史訂單（${c.orders.length} 筆）</div>
-      ${(c.orders||[]).map(o=>`<div class="hist-card"><div class="hist-top"><span class="hist-name">${svcLabel(o.service)}</span><span class="hist-date">${o.date}</span></div><div class="hist-meta"><i class="ti ti-map-pin" style="font-size:11px;margin-right:3px"></i>${o.loc}</div></div>`).join('')}
+      ${orders.filter(o=>o.name===c.name).sort((a,b)=>b.date.localeCompare(a.date)).map(o=>`<div class="hist-card"><div class="hist-top"><span class="hist-name">${svcLabel(o.service)}</span><span class="hist-date">${o.date}</span></div><div class="hist-meta"><i class="ti ti-map-pin" style="font-size:11px;margin-right:3px"></i>${o.loc}</div></div>`).join('')||'<div style="text-align:center;padding:16px;color:var(--sub);font-size:13px">尚無訂單記錄</div>'}
     </div>
     <div class="sheet-actions">
       <div class="sact" onclick="openEditClientSheet(${c.id})"><i class="ti ti-edit"></i> 編輯</div>
@@ -2033,6 +2033,7 @@ function applyPayConfirm(){
     if(selectedPayOpt==='deposit'){
       if(enteredAmt<=0){alert('請輸入收到的訂金金額');return;}
       t.deposit_amt=enteredAmt;
+      t.received_amt=enteredAmt;  // 已收金額同步更新
       t.pay='deposit';
     } else if(selectedPayOpt==='paid'){
       if(enteredAmt<=0){alert('請輸入收到的金額');return;}
