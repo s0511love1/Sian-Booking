@@ -914,7 +914,6 @@ let currentPendingId=null;
 function confirmReview(elId, pendingId){
   const reviewEntry=reviewData[elId]||{};
   const name=reviewEntry.clientName||'';
-  console.log('confirmReview START', elId, pendingId, 'name:', name);
   currentReviewId=elId;
   currentPendingId=pendingId||null;
 
@@ -932,7 +931,6 @@ function confirmReview(elId, pendingId){
   closeSheet('reviewSheet');
 
   setTimeout(()=>{
-  console.log('confirmReview setTimeout fired');
   try{
   // 帶入 reviewData 資料
   const data=reviewData[elId];
