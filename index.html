@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!-- ============================================================
      Sian 嫻美學 · 後台管理 app（ADM）
-     版本：ADM-A1.1｜Sian-Booking A1.1版          日期：2026-10-05
+     版本：ADM-A2｜Sian-Booking A2版          日期：2026-10-05
      🔴 部署檔名必須改回：index.html
      Repo：Sian-Booking   →   https://sian-booking.vercel.app/
      知識庫：SIAN-ADM_規格.md ／ _資料模型.md ／ _踩坑.md
@@ -481,6 +481,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
               <div onclick="event.stopPropagation();triggerImport()" style="padding:12px 16px;font-size:13px;font-weight:400;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:8px;border-bottom:0.5px solid var(--border-light)"><i class="ti ti-upload"></i>匯入進度</div>
               <div onclick="event.stopPropagation();exportExcel()" style="padding:12px 16px;font-size:13px;font-weight:400;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:8px;border-bottom:0.5px solid var(--border-light)"><i class="ti ti-file-spreadsheet"></i>匯出 Excel 報表</div>
               <div onclick="event.stopPropagation();manualSync()" style="padding:12px 16px;font-size:13px;font-weight:400;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:8px;border-bottom:0.5px solid var(--border-light)"><i class="ti ti-refresh"></i>立即同步</div>
+              <div onclick="event.stopPropagation();openCancelledSheet()" style="padding:12px 16px;font-size:13px;font-weight:400;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:8px;border-bottom:0.5px solid var(--border-light)"><i class="ti ti-trash-x"></i>作廢區</div>
               <div onclick="event.stopPropagation();archiveHistory()" style="padding:12px 16px;font-size:13px;font-weight:400;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:8px"><i class="ti ti-archive"></i>封存歷史訂單</div>
             </div>
           </div>
@@ -650,6 +651,9 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
         <div class="sact" onclick="openEditSheet(calDetailTaskId)"><i class="ti ti-edit"></i> 編輯</div>
         <div class="sact" onclick="exportContract(calDetailTaskId)"><i class="ti ti-file-text"></i> 合約書</div>
         <div class="sact primary" onclick="openPayConfirm(calDetailTaskId,'sheet')"><i class="ti ti-check"></i> 確認收款</div>
+      </div>
+      <div style="padding:10px 20px 0">
+        <div class="sact danger" onclick="cancelOrder(calDetailTaskId)" style="border-style:dashed"><i class="ti ti-ban"></i> 作廢訂單</div>
       </div>
     </div>
   </div>
@@ -829,6 +833,18 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
     </div>
   </div>
 
+  <!-- ADM-A2：作廢區 -->
+  <div class="sheet-bg" id="cancelledSheet" onclick="bgClose(event,'cancelledSheet')">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <div class="sheet-title">作廢區 <span id="cancelledCount" style="font-size:13px;color:var(--sub);font-weight:400"></span></div>
+        <span class="sheet-close" onclick="closeSheet('cancelledSheet')"><i class="ti ti-x"></i></span>
+      </div>
+      <div class="sheet-body" id="cancelledList"></div>
+    </div>
+  </div>
+
   <div class="toast" id="toast"></div>
 
   <!-- CONTRACT RESULT MODAL -->
@@ -884,6 +900,10 @@ let nextExpId=1;
 let tags=[];
 let nextTagId=15;
 let clients=[];
+// ADM-A2：作廢單與其關聯支出（由 syncAll 分開回傳，不參與任何統計）
+let cancelledOrders=[];
+let cancelledExpenses=[];
+const CANCEL_KEEP_DAYS=30; // 僅供顯示；實際清除以 GS 的 PURGE_DAYS 為準
 
 // ============================================================
 // NAVIGATION
@@ -2170,6 +2190,135 @@ function markOrderDone(id){
 }
 
 // ============================================================
+// CANCEL / RESTORE（ADM-A2）
+//   雲端優先：GS 回 ok 才改本機，失敗就維持原狀並明說（不偽裝成功）
+// ============================================================
+let isCancelBusy=false;
+
+function refreshAllViews(){
+  renderCalendar();
+  renderPayment();
+  renderClients();
+  renderDashStats();
+  renderDashToday();
+}
+
+// 以 GS 回傳的重算結果為準；沒有回傳時用本機有效訂單重算
+function applyClientStats(name,stats){
+  const c=clients.find(x=>x.name===name);
+  if(!c)return;
+  if(stats){
+    c.orderCount=stats.orderCount;
+    c.lastServiceDate=stats.lastServiceDate||'';
+  } else {
+    const mine=orders.filter(o=>o.name===name);
+    c.orderCount=mine.length;
+    c.lastServiceDate=mine.map(o=>o.date).filter(Boolean).sort().pop()||'';
+  }
+}
+
+async function cancelOrder(id){
+  const t=orders.find(x=>x.id===id);
+  if(!t)return;
+  const linkedExp=expenses.filter(e=>e.orderId===id);
+  const received=calcRecv(t);
+  const risks=[];
+  if(t.pay!=='unpaid'||received>0)risks.push(`・已收款 NT$ ${received.toLocaleString()}（作廢後不計入營收）`);
+  if(t.clientId)risks.push(`・已產生合約書（客戶編號 ${t.clientId}）`);
+  if(linkedExp.length)risks.push(`・有 ${linkedExp.length} 筆關聯支出，將一併從支出統計排除`);
+  const base=`確定要作廢這筆訂單？\n\n${t.name}・${svcLabel(t.service)}・${t.date}\n\n作廢後不計入營收與各項統計，並釋出檔期。\n可在「嫻」選單 →「作廢區」${CANCEL_KEEP_DAYS} 天內還原，之後自動清除。`;
+  if(!confirm(risks.length?`⚠️ 這筆訂單有以下狀況：\n${risks.join('\n')}\n\n`+base:base))return;
+  if(risks.length&&!confirm(`再次確認：作廢「${t.name}」的${svcLabel(t.service)}訂單？\n請確認已與客人處理完畢（退款、合約）。`))return;
+  if(!isCloudReady()){alert('作廢需要雲端連線，請確認網路後再試');return;}
+  if(isCancelBusy)return;
+  isCancelBusy=true;
+  showLoadingOverlay('正在作廢訂單…');
+  try{
+    const res=await callAPI({action:'cancelOrder',id});
+    orders=orders.filter(o=>o.id!==id);
+    t.status='cancelled';
+    t.cancelledAt=res.cancelledAt||t.cancelledAt||new Date().toISOString();
+    cancelledOrders.push(t);
+    expenses=expenses.filter(e=>e.orderId!==id);
+    cancelledExpenses.push(...linkedExp);
+    applyClientStats(t.name,res.clientStats);
+    saveToLocal();
+    hideLoadingOverlay(true);
+    closeSheet('calDetailSheet');
+    refreshAllViews();
+    showToast('已作廢，可在「作廢區」還原');
+  }catch(err){
+    hideLoadingOverlay(true);
+    alert('作廢失敗：'+err.message+'\n訂單沒有任何變更，請稍後再試');
+  }finally{
+    isCancelBusy=false;
+  }
+}
+
+async function restoreOrder(id){
+  const t=cancelledOrders.find(x=>x.id===id);
+  if(!t)return;
+  if(!confirm(`還原「${t.name}」的${svcLabel(t.service)}訂單（${t.date}）？\n還原後狀態為「已確認」，若服務已完成請再手動標記。`))return;
+  if(!isCloudReady()){alert('還原需要雲端連線，請確認網路後再試');return;}
+  if(isCancelBusy)return;
+  isCancelBusy=true;
+  showLoadingOverlay('正在還原訂單…');
+  try{
+    const res=await callAPI({action:'restoreOrder',id});
+    cancelledOrders=cancelledOrders.filter(o=>o.id!==id);
+    t.status='confirmed';
+    t.cancelledAt='';
+    orders.push(t);
+    const back=cancelledExpenses.filter(e=>e.orderId===id);
+    cancelledExpenses=cancelledExpenses.filter(e=>e.orderId!==id);
+    expenses.push(...back);
+    applyClientStats(t.name,res.clientStats);
+    saveToLocal();
+    hideLoadingOverlay(true);
+    renderCancelledList();
+    refreshAllViews();
+    showToast('已還原訂單');
+  }catch(err){
+    hideLoadingOverlay(true);
+    alert('還原失敗：'+err.message+'\n請下拉同步後再確認');
+  }finally{
+    isCancelBusy=false;
+  }
+}
+
+function openCancelledSheet(){
+  document.getElementById('avMenu').style.display='none';
+  renderCancelledList();
+  document.getElementById('cancelledSheet').classList.add('show');
+}
+
+function renderCancelledList(){
+  const el=document.getElementById('cancelledList');
+  const cnt=document.getElementById('cancelledCount');
+  if(cnt)cnt.textContent=cancelledOrders.length?`（${cancelledOrders.length} 筆）`:'';
+  if(!el)return;
+  if(!cancelledOrders.length){
+    el.innerHTML='<div style="text-align:center;padding:32px 0;color:var(--sub);font-size:13px;line-height:1.8">作廢區是空的</div>';
+    return;
+  }
+  const DAY=24*60*60*1000;
+  const list=[...cancelledOrders].sort((a,b)=>String(b.cancelledAt||'').localeCompare(String(a.cancelledAt||'')));
+  el.innerHTML=`<div style="font-size:11px;color:var(--sub);margin-bottom:10px">作廢單不計入營收與統計；保留 ${CANCEL_KEEP_DAYS} 天後自動清除（含關聯支出）</div>`+
+    list.map(o=>{
+      const ms=Date.parse(o.cancelledAt||'');
+      const left=isNaN(ms)?null:Math.max(0,CANCEL_KEEP_DAYS-Math.floor((Date.now()-ms)/DAY));
+      const cAt=isNaN(ms)?'—':new Date(ms).toISOString().slice(0,10);
+      return `<div class="hist-card" style="display:flex;align-items:center;gap:10px">
+        <div style="flex:1;min-width:0">
+          <div class="hist-top"><span class="hist-name">${o.name}・${svcLabel(o.service)}</span><span class="hist-date">${o.date}</span></div>
+          <div class="hist-meta">作廢於 ${cAt}・${left===null?'保留期限未知':'剩 '+left+' 天自動清除'}</div>
+        </div>
+        <div class="sact" data-id="${o.id}" onclick="restoreOrder(Number(this.dataset.id))" style="padding:8px 12px;flex-shrink:0"><i class="ti ti-arrow-back-up"></i> 還原</div>
+      </div>`;
+    }).join('');
+}
+
+// ============================================================
 // ============================================================
 // DATA PERSISTENCE：雲端優先，LocalStorage 作為備用快取
 // ============================================================
@@ -2201,6 +2350,8 @@ async function syncFromCloud(){
     clients  = data.clients  || [];
     expenses = data.expenses || [];
     tags     = data.tags     || [];
+    cancelledOrders   = data.cancelledOrders   || [];
+    cancelledExpenses = data.cancelledExpenses || [];
     nextOrderId   = data.nextOrderId   || 1;
     nextExpId     = data.nextExpenseId || 1;
     nextTagId     = data.nextTagId     || 15;
@@ -2223,6 +2374,7 @@ function saveToLocal(){
   try{
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
       orders, expenses, tags, clients,
+      cancelledOrders, cancelledExpenses,
       nextOrderId, nextExpId, nextTagId,
       savedAt:new Date().toISOString()
     }));
@@ -2239,6 +2391,8 @@ function loadFromLocal(){
     if(data.expenses) expenses=data.expenses;
     if(data.tags)     tags=data.tags;
     if(data.clients)  clients=data.clients;
+    if(Array.isArray(data.cancelledOrders))   cancelledOrders=data.cancelledOrders;
+    if(Array.isArray(data.cancelledExpenses)) cancelledExpenses=data.cancelledExpenses;
     if(data.nextOrderId) nextOrderId=data.nextOrderId;
     if(data.nextExpId)   nextExpId=data.nextExpId;
     if(data.nextTagId)   nextTagId=data.nextTagId;
