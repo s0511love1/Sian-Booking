@@ -1,4 +1,12 @@
 <!DOCTYPE html>
+<!-- ============================================================
+     Sian 嫻美學 · 後台管理 app（ADM）
+     版本：ADM-A1｜Sian-Booking A1版          日期：2026-10-05
+     🔴 部署檔名必須改回：index.html
+     Repo：Sian-Booking   →   https://sian-booking.vercel.app/
+     知識庫：SIAN-ADM_規格.md ／ _資料模型.md ／ _踩坑.md
+     後端：SIAN-ADM_AppsScript.gs（改完必須重新部署新版本）
+     ============================================================ -->
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -954,6 +962,7 @@ function confirmReview(elId, pendingId){
 
   // 重置表單狀態
   addStep=1;
+  isSubmittingOrder=false;
 
   // 顯示 overlay
   const overlay=document.getElementById('addOrderOverlay');
@@ -1536,6 +1545,8 @@ function clearAllTags(){activeTags.clear();renderClients();}
 
 function openClientDetail(id){
   const c=clients.find(x=>x.id===id);if(!c)return;
+  // ADM-A1：客戶 schema 沒有 orders 陣列，歷史訂單一律從全域 orders 用姓名過濾
+  const histOrders=orders.filter(o=>o.name===c.name).sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
   document.getElementById('clientDetailContent').innerHTML=`
     <div class="sheet-handle"></div>
     <div class="profile-hero">
@@ -1551,19 +1562,19 @@ function openClientDetail(id){
       <div class="sec-title" style="margin-bottom:10px">基本資料</div>
       <div class="srow"><span class="skey">電話</span><span class="sval">${c.phone}</span></div>
       <div class="srow"><span class="skey">風格偏好</span><span class="sval">${c.style||'未填'}</span></div>
-      <div class="srow"><span class="skey">服務次數</span><span class="sval">${c.orders.length} 次</span></div>
+      <div class="srow"><span class="skey">服務次數</span><span class="sval">${c.orderCount||0} 次</span></div>
     </div>
     <div class="profile-sec">
       <div class="sec-title" style="margin-bottom:10px">膚質與過敏</div>
       <div class="chips" style="margin-bottom:${c.allergy?'10px':'0'}">
-        ${c.skin.map(s=>`<span class="skin-chip ${s==='敏感肌'||s==='痘痘肌'?'warn':''}">${s}</span>`).join('')}
+        ${(c.skin||[]).map(s=>`<span class="skin-chip ${s==='敏感肌'||s==='痘痘肌'?'warn':''}">${s}</span>`).join('')}
       </div>
       ${c.allergy?`<div class="srow" style="margin-top:8px"><span class="skey">過敏成分</span><span class="sval" style="color:var(--red)">${c.allergy}</span></div>`:''}
       ${c.note?`<div style="background:var(--rose-bg);border-radius:8px;padding:10px 12px;margin-top:10px;font-size:13px;color:var(--sub);line-height:1.6">${c.note}</div>`:''}
     </div>
     <div class="profile-sec">
-      <div class="sec-title" style="margin-bottom:10px">歷史訂單（${c.orders.length} 筆）</div>
-      ${orders.filter(o=>o.name===c.name).sort((a,b)=>b.date.localeCompare(a.date)).map(o=>`<div class="hist-card"><div class="hist-top"><span class="hist-name">${svcLabel(o.service)}</span><span class="hist-date">${o.date}</span></div><div class="hist-meta"><i class="ti ti-map-pin" style="font-size:11px;margin-right:3px"></i>${o.loc}</div></div>`).join('')||'<div style="text-align:center;padding:16px;color:var(--sub);font-size:13px">尚無訂單記錄</div>'}
+      <div class="sec-title" style="margin-bottom:10px">歷史訂單（${histOrders.length} 筆）</div>
+      ${histOrders.map(o=>`<div class="hist-card"><div class="hist-top"><span class="hist-name">${svcLabel(o.service)}</span><span class="hist-date">${o.date}</span></div><div class="hist-meta"><i class="ti ti-map-pin" style="font-size:11px;margin-right:3px"></i>${o.loc}</div></div>`).join('')||'<div style="text-align:center;padding:16px;color:var(--sub);font-size:13px">尚無訂單記錄</div>'}
     </div>
     <div class="sheet-actions">
       <div class="sact" onclick="openEditClientSheet(${c.id})"><i class="ti ti-edit"></i> 編輯</div>
@@ -1691,6 +1702,8 @@ let addForm={isExisting:false,clientName:'',phone:'',serviceBlocks:[{service:'',
 const EXISTING_CLIENTS=[{name:'陳雅婷',phone:'0923-456-789',orders:2},{name:'蔡佳穎',phone:'0956-789-012',orders:2},{name:'林怡君',phone:'0912-345-678',orders:1}];
 
 let prevPage='dashboard';
+// ADM-A1：防重複送出。送出後鎖住，直到重新開啟新增訂單表單才解鎖
+let isSubmittingOrder=false;
 function openAddOrder(){
   const active=document.querySelector('.nav-item.active');
   prevPage=active?active.id.replace('nav-',''):'dashboard';
@@ -1700,6 +1713,7 @@ function openAddOrder(){
   document.getElementById('addCtaBar').style.display='flex';
   document.getElementById('addStepsBar').style.display='flex';
   addStep=1;
+  isSubmittingOrder=false;
   addForm={isExisting:false,clientName:'',phone:'',serviceBlocks:[{service:'',date:'',time:'06:00',loc:'',venueAddress:'',people:'僅新娘',peopleNote:'',total:'',deposit:''}],skin:[],allergy:'',style:'自然清透感',note:'',tags:[]};
   renderAddSteps();renderAddForm();
 }
@@ -1910,6 +1924,8 @@ function addSubmit(){
       return;
     }
   }
+  if(isSubmittingOrder){showToast('訂單已送出，請勿重複點擊');return;}
+  isSubmittingOrder=true;
   const bookingId='B'+Date.now();
   const now=new Date().toISOString();
   const newOrders=addForm.serviceBlocks.map(b=>({
@@ -1930,13 +1946,15 @@ function addSubmit(){
   // sync clients
   const existingClient=clients.find(c=>c.name===addForm.clientName);
   if(existingClient){
-    newOrders.forEach(o=>existingClient.orders.unshift({date:o.date,service:o.service,loc:o.loc}));
-    existingClient.repeat=existingClient.orders.length>1;
+    // ADM-A1：對齊 GS autoUpsertClient（每筆訂單 orderCount +1、lastServiceDate 取最後一筆）
+    existingClient.orderCount=(parseInt(existingClient.orderCount)||0)+newOrders.length;
+    existingClient.lastServiceDate=newOrders[newOrders.length-1].date||'';
+    existingClient.repeat=existingClient.orderCount>1;
     if(addForm.skin&&addForm.skin.length)existingClient.skin=addForm.skin;
     if(addForm.allergy)existingClient.allergy=addForm.allergy;
     if(addForm.style)existingClient.style=addForm.style;
   } else {
-    clients.unshift({id:clients.length+10,name:addForm.clientName,phone:addForm.phone,skin:addForm.skin||[],allergy:addForm.allergy||'',style:addForm.style||'',note:addForm.note||'',repeat:newOrders.length>1,orders:newOrders.map(o=>({date:o.date,service:o.service,loc:o.loc}))});
+    clients.unshift({id:clients.length+10,name:addForm.clientName,phone:addForm.phone,skin:addForm.skin||[],allergy:addForm.allergy||'',style:addForm.style||'',note:addForm.note||'',repeat:newOrders.length>1,orderCount:newOrders.length,lastServiceDate:newOrders[newOrders.length-1].date||''});
   }
   addForm={isExisting:false,clientName:'',phone:'',serviceBlocks:[{service:'',date:'',time:'06:00',loc:'',venueAddress:'',people:'僅新娘',peopleNote:'',total:'',deposit:''}],skin:[],allergy:'',style:'自然清透感',note:'',tags:[]};
   saveData();
@@ -2441,8 +2459,8 @@ function buildExcelReport(){
       風格偏好:c.style||'',
       備注:c.note||'',
       回頭客:c.repeat?'是':'否',
-      歷史訂單數:c.orders?c.orders.length:0,
-      最近服務日期:(c.orders&&c.orders[0])?c.orders[0].date:''
+      歷史訂單數:c.orderCount||0,
+      最近服務日期:c.lastServiceDate||''
     }));
     const wsClients=XLSX.utils.json_to_sheet(clientRows.length?clientRows:[{姓名:'（無資料）'}]);
     XLSX.utils.book_append_sheet(wb,wsClients,'客戶');
