@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!-- ============================================================
      Sian 嫻美學 · 後台管理 app（ADM）
-     版本：ADM-A2｜Sian-Booking A2版          日期：2026-10-05
+     版本：ADM-A3｜Sian-Booking A3版          日期：2026-10-05
      🔴 部署檔名必須改回：index.html
      Repo：Sian-Booking   →   https://sian-booking.vercel.app/
      知識庫：SIAN-ADM_規格.md ／ _資料模型.md ／ _踩坑.md
@@ -833,6 +833,36 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
     </div>
   </div>
 
+  <!-- ADM-A3：設定不接單 -->
+  <div class="sheet-bg" id="blockSheet" onclick="bgClose(event,'blockSheet')">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <div class="sheet-title" id="blockSheetTitle">設定不接單</div>
+        <span class="sheet-close" onclick="closeSheet('blockSheet')"><i class="ti ti-x"></i></span>
+      </div>
+      <div class="sheet-body">
+        <div class="field">
+          <label class="fl">範圍</label>
+          <div class="chips">
+            <div class="chip on" id="blockModeAll" onclick="setBlockMode('all')">整天</div>
+            <div class="chip" id="blockModePart" onclick="setBlockMode('part')">指定時段</div>
+          </div>
+        </div>
+        <div class="drow" id="blockTimeRow" style="display:none">
+          <div class="field"><label class="fl">開始</label><input type="time" id="blockStart" step="3600"></div>
+          <div class="field"><label class="fl">結束</label><input type="time" id="blockEnd" step="3600"></div>
+        </div>
+        <div class="field"><label class="fl">備註（官網不會顯示）</label><input type="text" id="blockNote" placeholder="例：出國、進修"></div>
+        <div style="font-size:11px;color:var(--sub);margin-bottom:12px;line-height:1.6">官網會把這段時間顯示為滿檔；一般服務不可預約，新娘秘書仍可送出洽詢由你裁決。</div>
+        <div class="sheet-actions" style="border:none;padding:0;margin:0">
+          <div class="sact" onclick="closeSheet('blockSheet')">取消</div>
+          <div class="sact primary" onclick="saveBlock()">儲存</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ADM-A2：作廢區 -->
   <div class="sheet-bg" id="cancelledSheet" onclick="bgClose(event,'cancelledSheet')">
     <div class="sheet">
@@ -904,6 +934,8 @@ let clients=[];
 let cancelledOrders=[];
 let cancelledExpenses=[];
 const CANCEL_KEEP_DAYS=30; // 僅供顯示；實際清除以 GS 的 PURGE_DAYS 為準
+// ADM-A3：檔期設定（模板／佔用時長／緩衝／不接單）—— 唯一來源是 GS，前端只讀
+let scheduleCfg=null;
 
 // ============================================================
 // NAVIGATION
@@ -1189,6 +1221,8 @@ function renderCalendar(){
     if(mine){
       const dt=orders.filter(o=>o.date===ds);
       if(dt.length){const dr=document.createElement('div');dr.className='dot-row';dt.slice(0,3).forEach(t=>{const d=document.createElement('div');d.className=`cdot ${t.pay}`;dr.appendChild(d);});cell.appendChild(dr);}
+      const bl=dayBlocks(ds);
+      if(bl.length){const tg=document.createElement('div');tg.style.cssText='font-size:9px;line-height:1.2;color:var(--sub);text-align:center;margin-top:2px';tg.textContent=bl.some(b=>!b.start)?'不接單':'部分不接';cell.appendChild(tg);}
       cell.addEventListener('click',()=>{calSelDate=ds;renderCalendar();renderDayDetail(ds);});
     }
     grid.appendChild(cell);
@@ -1201,8 +1235,8 @@ function renderDayDetail(ds){
   const d=new Date(ds);const wd=['日','一','二','三','四','五','六'];
   const label=`${d.getMonth()+1} 月 ${d.getDate()} 日（${wd[d.getDay()]}）`;
   const dt=orders.filter(o=>o.date===ds).sort((a,b)=>(a.time||'').localeCompare(b.time||''));
-  if(!dt.length){detail.innerHTML=`<div class="detail-head">${label}</div><div class="empty-day"><i class="ti ti-calendar-off" style="font-size:28px;display:block;margin-bottom:8px;color:var(--line)"></i>這天沒有排程<br><span style="font-size:12px">點右上角新增訂單</span></div>`;return;}
-  detail.innerHTML=`<div class="detail-head">${label}・${dt.length} 筆</div>`+dt.map(t=>`
+  if(!dt.length){detail.innerHTML=`<div class="detail-head">${label}</div>${blockPanelHtml(ds)}<div class="empty-day"><i class="ti ti-calendar-off" style="font-size:28px;display:block;margin-bottom:8px;color:var(--line)"></i>這天沒有排程<br><span style="font-size:12px">點右上角新增訂單</span></div>`;return;}
+  detail.innerHTML=`<div class="detail-head">${label}・${dt.length} 筆</div>`+blockPanelHtml(ds)+dt.map(t=>`
     <div class="tcard ${t.pay}">
       <div class="tcard-top"><div><div class="tcard-name">${t.name}</div><div class="tcard-svc">${svcLabel(t.service)}</div></div><span class="badge badge-${t.pay}">${PAY_LABEL[t.pay]}</span></div>
       <div class="tcard-meta">
@@ -1845,6 +1879,7 @@ function renderAddForm(){
     const grandTotal=addForm.serviceBlocks.reduce((s,b)=>s+(parseInt(b.total)||0),0);
 
     c.innerHTML=`
+      <div id="conflictBox"></div>
       <div class="sec-divider">收款設定<span style="font-weight:400;color:var(--sub);letter-spacing:0;text-transform:none;font-size:11px">（各項目獨立計算）</span></div>
       ${blocksHtml}
       <div style="font-size:11px;color:var(--sub);margin-bottom:16px">每個項目將建立獨立訂單，付款狀態各自為「未付款」</div>
@@ -1854,6 +1889,7 @@ function renderAddForm(){
         ${addForm.serviceBlocks.map((b,i)=>`<div class="srow"><span class="skey">項目 ${i+1}</span><span class="sval">${b.service||'—'}・${b.date||'—'}・$${(parseInt(b.total)||0).toLocaleString()}</span></div>`).join('')}
         <div class="srow"><span class="skey" style="font-weight:500">總計</span><span class="sval" style="font-weight:700;color:var(--rose-deep)">$${grandTotal.toLocaleString()}</span></div>
       </div>`;
+    checkAddConflicts();
   }
 }
 
@@ -1883,6 +1919,7 @@ function addNextStep(){
       if(!b.service){alert(`服務項目 ${i+1}：請選擇服務類型`);return;}
       if(!b.date){alert(`服務項目 ${i+1}：請選擇日期`);return;}
       if(!b.loc){alert(`服務項目 ${i+1}：請填寫地點`);return;}
+      if(!isFullDayService(b.service)&&!b.time){alert(`服務項目 ${i+1}：「${b.service}」請填寫開始時間（用於檔期計算）`);return;}
     }
   }
   if(addStep===4){addSubmit();return;}
@@ -2319,6 +2356,125 @@ function renderCancelledList(){
 }
 
 // ============================================================
+// SCHEDULE（ADM-A3）：不接單管理＋衝突提醒（計算一律在 GS，前端只顯示）
+// ============================================================
+function isFullDayService(service){
+  const d=scheduleCfg&&scheduleCfg.durations?scheduleCfg.durations[service]:null;
+  if(d)return !!d.fullDay;
+  return service==='新娘秘書';
+}
+
+function dayBlocks(ds){
+  return ((scheduleCfg&&scheduleCfg.blocks)||[]).filter(b=>b.date===ds);
+}
+
+function blockPanelHtml(ds){
+  const list=dayBlocks(ds);
+  const rows=list.map(b=>`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0">
+      <div style="font-size:12px;color:var(--text)"><i class="ti ti-ban" style="color:var(--red);margin-right:4px"></i>${b.start?b.start+'–'+b.end:'整天'} 不接單${b.note?`<span style="color:var(--sub)">・${b.note}</span>`:''}</div>
+      <div data-id="${b.id}" onclick="deleteBlock(this.dataset.id)" style="font-size:12px;color:var(--sub);cursor:pointer;padding:2px 6px"><i class="ti ti-trash"></i></div>
+    </div>`).join('');
+  return `<div style="background:var(--white);border:0.5px dashed var(--line);border-radius:10px;padding:8px 12px;margin-bottom:10px">
+    ${rows}
+    <div data-ds="${ds}" onclick="openBlockSheet(this.dataset.ds)" style="font-size:12px;color:var(--rose-deep);cursor:pointer;padding:4px 0"><i class="ti ti-calendar-off" style="margin-right:4px"></i>${list.length?'再新增不接單時段':'設定這天不接單'}</div>
+  </div>`;
+}
+
+let blockSheetDate=null;
+let blockMode='all';
+let isBlockBusy=false;
+function setBlockMode(m){
+  blockMode=m;
+  document.getElementById('blockModeAll').classList.toggle('on',m==='all');
+  document.getElementById('blockModePart').classList.toggle('on',m==='part');
+  document.getElementById('blockTimeRow').style.display=m==='part'?'grid':'none';
+}
+function openBlockSheet(ds){
+  blockSheetDate=ds;
+  document.getElementById('blockSheetTitle').textContent=ds+'・設定不接單';
+  document.getElementById('blockStart').value='';
+  document.getElementById('blockEnd').value='';
+  document.getElementById('blockNote').value='';
+  setBlockMode('all');
+  document.getElementById('blockSheet').classList.add('show');
+}
+async function saveBlock(){
+  if(!blockSheetDate)return;
+  const block={date:blockSheetDate,note:document.getElementById('blockNote').value.trim()};
+  if(blockMode==='part'){
+    block.start=document.getElementById('blockStart').value;
+    block.end=document.getElementById('blockEnd').value;
+    if(!block.start||!block.end){alert('請填寫開始與結束時間');return;}
+    if(block.start>=block.end){alert('結束時間必須晚於開始時間');return;}
+  }
+  if(!isCloudReady()){alert('設定不接單需要雲端連線');return;}
+  if(isBlockBusy)return;
+  isBlockBusy=true;
+  try{
+    const res=await callAPI({action:'addBlock',block});
+    if(!scheduleCfg)scheduleCfg={template:[],durations:{},bufferHours:1,blocks:[]};
+    if(!Array.isArray(scheduleCfg.blocks))scheduleCfg.blocks=[];
+    scheduleCfg.blocks.push(res.block);
+    saveToLocal();
+    closeSheet('blockSheet');
+    renderCalendar();
+    showToast('已設定不接單');
+  }catch(err){
+    alert('設定失敗：'+err.message);
+  }finally{
+    isBlockBusy=false;
+  }
+}
+async function deleteBlock(id){
+  const b=((scheduleCfg&&scheduleCfg.blocks)||[]).find(x=>x.id===id);
+  if(!b)return;
+  if(!confirm(`取消 ${b.date} ${b.start?b.start+'–'+b.end:'整天'} 的不接單設定？`))return;
+  if(!isCloudReady()){alert('需要雲端連線');return;}
+  if(isBlockBusy)return;
+  isBlockBusy=true;
+  try{
+    await callAPI({action:'deleteBlock',id});
+    scheduleCfg.blocks=scheduleCfg.blocks.filter(x=>x.id!==id);
+    saveToLocal();
+    renderCalendar();
+    showToast('已取消不接單');
+  }catch(err){
+    alert('取消失敗：'+err.message);
+  }finally{
+    isBlockBusy=false;
+  }
+}
+
+// 新增訂單 Step 4：逐項向 GS 查衝突，只顯示提醒，不影響「建立訂單」
+let conflictSeq=0;
+async function checkAddConflicts(){
+  const box=document.getElementById('conflictBox');
+  if(!box)return;
+  const seq=++conflictSeq;
+  const blocks=addForm.serviceBlocks.filter(b=>b.service&&b.date);
+  if(!blocks.length){box.innerHTML='';return;}
+  if(!isCloudReady()){box.innerHTML='';return;}
+  box.innerHTML='<div style="font-size:12px;color:var(--sub);margin-bottom:12px"><i class="ti ti-loader" style="margin-right:4px"></i>正在檢查檔期…</div>';
+  try{
+    const found=[];
+    for(const b of blocks){
+      const res=await callAPI({action:'checkConflict',date:b.date,service:b.service,time:b.time||'',excludePendingId:currentPendingId||''});
+      if((res.conflicts||[]).length)found.push({b,list:res.conflicts});
+    }
+    if(seq!==conflictSeq)return;
+    const el=document.getElementById('conflictBox');
+    if(!el)return;
+    el.innerHTML=found.length
+      ?`<div style="background:var(--red-light);border:0.5px solid var(--unpaid-border);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--red);line-height:1.7"><b>⚠️ 行程衝突提醒</b>（僅提醒，不影響建立訂單）${found.map(f=>`<div style="margin-top:6px"><b>${f.b.service}・${f.b.date}${f.b.time?' '+f.b.time:''}</b><br>${f.list.join('<br>')}</div>`).join('')}</div>`
+      :'<div style="font-size:12px;color:var(--green);margin-bottom:12px"><i class="ti ti-circle-check" style="margin-right:4px"></i>檔期無衝突</div>';
+  }catch(err){
+    if(seq!==conflictSeq)return;
+    const el=document.getElementById('conflictBox');
+    if(el)el.innerHTML=`<div style="font-size:12px;color:var(--amber);margin-bottom:12px">⚠️ 無法檢查檔期衝突（${err.message}），仍可建立訂單</div>`;
+  }
+}
+
+// ============================================================
 // ============================================================
 // DATA PERSISTENCE：雲端優先，LocalStorage 作為備用快取
 // ============================================================
@@ -2352,6 +2508,7 @@ async function syncFromCloud(){
     tags     = data.tags     || [];
     cancelledOrders   = data.cancelledOrders   || [];
     cancelledExpenses = data.cancelledExpenses || [];
+    scheduleCfg       = data.schedule || scheduleCfg;
     nextOrderId   = data.nextOrderId   || 1;
     nextExpId     = data.nextExpenseId || 1;
     nextTagId     = data.nextTagId     || 15;
@@ -2374,7 +2531,7 @@ function saveToLocal(){
   try{
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
       orders, expenses, tags, clients,
-      cancelledOrders, cancelledExpenses,
+      cancelledOrders, cancelledExpenses, scheduleCfg,
       nextOrderId, nextExpId, nextTagId,
       savedAt:new Date().toISOString()
     }));
@@ -2393,6 +2550,7 @@ function loadFromLocal(){
     if(data.clients)  clients=data.clients;
     if(Array.isArray(data.cancelledOrders))   cancelledOrders=data.cancelledOrders;
     if(Array.isArray(data.cancelledExpenses)) cancelledExpenses=data.cancelledExpenses;
+    if(data.scheduleCfg&&typeof data.scheduleCfg==='object') scheduleCfg=data.scheduleCfg;
     if(data.nextOrderId) nextOrderId=data.nextOrderId;
     if(data.nextExpId)   nextExpId=data.nextExpId;
     if(data.nextTagId)   nextTagId=data.nextTagId;
@@ -2473,6 +2631,7 @@ function updatePendingList(pendingItems){
         <div class="ri-meta"><i class="ti ti-phone" style="font-size:12px"></i>${item.phone||'—'}</div>
       </div>
       ${item.allergy||item.skin.length?`<div class="ri-note">膚質：${item.skin.join('、')||'未填'}${item.allergy?'・過敏：'+item.allergy:''}${item.style?'・風格：'+item.style:''}</div>`:''}
+      ${(item.conflicts||[]).length?`<div class="ri-note" style="background:var(--red-light);color:var(--red);border:0.5px solid var(--unpaid-border)"><b>⚠️ 行程衝突！</b>（僅提醒，仍可建立訂單）<br>${item.conflicts.join('<br>')}</div>`:''}
       <div class="ri-actions">
         <div class="ri-btn danger" data-elid="${safeId}" data-pid="${item.id}" onclick="rejectReview(this.dataset.elid,this.dataset.pid)"><i class="ti ti-x"></i> 婉拒</div>
         <div class="ri-btn primary" data-elid="${safeId}" data-pid="${item.id}" onclick="confirmReview(this.dataset.elid,this.dataset.pid)"><i class="ti ti-check"></i> 建立訂單</div>
