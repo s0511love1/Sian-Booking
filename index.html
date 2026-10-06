@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!-- ============================================================
      Sian 嫻美學 · 後台管理 app（ADM）
-     版本：ADM-A3｜Sian-Booking A3版          日期：2026-10-05
+     版本：ADM-A4｜Sian-Booking A4版          日期：2026-10-06
      🔴 部署檔名必須改回：index.html
      Repo：Sian-Booking   →   https://sian-booking.vercel.app/
      知識庫：SIAN-ADM_規格.md ／ _資料模型.md ／ _踩坑.md
@@ -204,6 +204,11 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 .day-cell:hover{background:var(--rose-bg)}
 .day-cell.selected{background:var(--rose-bg)}
 .day-cell.other{opacity:0.3}
+/* ADM-A3.1：不接單視覺 —— 整天＝紅色 X 方格；部分時段＝紅色斜紋虛框 */
+.day-cell.blocked,.day-cell.blocked:hover{background:linear-gradient(to top right,transparent calc(50% - 1px),rgba(185,28,28,0.45) calc(50% - 1px),rgba(185,28,28,0.45) calc(50% + 1px),transparent calc(50% + 1px)),linear-gradient(to top left,transparent calc(50% - 1px),rgba(185,28,28,0.45) calc(50% - 1px),rgba(185,28,28,0.45) calc(50% + 1px),transparent calc(50% + 1px)),var(--red-light);box-shadow:inset 0 0 0 1px #FCA5A5}
+.day-cell.blocked .day-num{color:var(--red);font-weight:700}
+.day-cell.blocked-part,.day-cell.blocked-part:hover{background:repeating-linear-gradient(135deg,var(--white) 0 6px,var(--red-light) 6px 9px);box-shadow:inset 0 0 0 1px #FCA5A5}
+.day-cell.blocked.selected,.day-cell.blocked-part.selected{box-shadow:inset 0 0 0 2px var(--rose-deep)}
 .day-num{font-size:12px;font-weight:400;color:var(--sub);text-align:center;margin-bottom:3px}
 .day-num.today-num{width:22px;height:22px;background:var(--rose);color:var(--white);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;margin:0 auto 3px}
 .dot-row{display:flex;justify-content:center;gap:3px;flex-wrap:wrap}
@@ -902,7 +907,13 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 // DATA
 // ============================================================
 const PAY_LABEL={unpaid:'未付款',deposit:'已付訂金',paid:'已付清'};
-const SERVICES=['新娘秘書','新娘試妝','活動梳化','彩妝教學','婚紗拍攝造型','精緻柔霧眉設計'];
+// 🔴 服務清單同源（磁片 B-1）：GS「佔用時長」分頁、Google 表單、官網文案、合約書 H14 要一起改
+// ADM-A4：彩妝教學拆成全妝課／體驗課；舊名「彩妝教學」只出現在既有訂單，不再供新單選擇
+const SERVICES=['新娘秘書','新娘試妝','活動梳化','彩妝教學-全妝課','彩妝教學-體驗課','婚紗拍攝造型','精緻柔霧眉設計'];
+// 下拉選單：目前值不在清單內（舊服務名）時保留在最前面，避免一打開編輯就被靜默改成第一個選項
+function serviceOptions(current){
+  return (current&&SERVICES.indexOf(current)<0?[current]:[]).concat(SERVICES);
+}
 function svcLabel(service){return service||'—';}
 const SKINS=['乾性','油性','混合性','敏感肌','痘痘肌','過敏史'];
 const STYLES=['自然清透感','韓系光澤感','歐美立體感','日系清甜感','復古優雅感'];
@@ -1074,24 +1085,37 @@ function updateReviewCountBadge(){
 function renderReviewItemActions(id){
   const el=document.getElementById(id);
   if(!el)return;
-  const name=el.querySelector('.ri-name').textContent;
+  // ADM-A3.1：一律帶「待審核 id」（原本誤帶客人姓名 → markPending 找不到該筆）
+  const pid=(reviewData[id]&&reviewData[id].pendingId)||'';
   el.querySelector('.ri-actions').innerHTML=`
-    <div class="ri-btn danger" onclick="rejectReview('${id}')"><i class="ti ti-x"></i> 婉拒</div>
-    <div class="ri-btn primary" onclick="confirmReview('${id}','${name}')"><i class="ti ti-check"></i> 建立訂單</div>
+    <div class="ri-btn danger" data-elid="${id}" data-pid="${pid}" onclick="rejectReview(this.dataset.elid,this.dataset.pid)"><i class="ti ti-x"></i> 婉拒</div>
+    <div class="ri-btn primary" data-elid="${id}" data-pid="${pid}" onclick="confirmReview(this.dataset.elid,this.dataset.pid)"><i class="ti ti-check"></i> 建立訂單</div>
   `;
+}
+
+// ADM-A3.1：雲端標記成功後，才把該筆從待審核計數中移除
+function removeReviewEntry(elId){
+  delete reviewData[elId];
+  updateReviewCountBadge();
+  try{ renderDashStats(); }catch(e){}
 }
 
 function rejectReview(elId, pendingId){
   const el=document.getElementById(elId);
   if(!el)return;
+  const pid=pendingId||(reviewData[elId]&&reviewData[elId].pendingId)||'';
   const name=el.querySelector('.ri-name').textContent;
   el.style.opacity='0.5';el.style.pointerEvents='none';
   el.querySelector('.ri-actions').innerHTML=`<div style="grid-column:span 2;text-align:center;font-size:13px;color:var(--sub);padding:8px;background:var(--warm);border-radius:9px">${name} 的申請已婉拒</div>`;
-  updateReviewCountBadge();
-  // mark as rejected in cloud
-  if(pendingId&&isCloudReady()){
-    callAPI({action:'markPending',id:pendingId,status:'rejected'}).catch(e=>console.warn('標記待審核失敗:',e));
-  }
+  if(!pid||!isCloudReady()){removeReviewEntry(elId);return;}
+  callAPI({action:'markPending',id:pid,status:'rejected'})
+    .then(()=>removeReviewEntry(elId))
+    .catch(err=>{
+      // 失敗不偽裝成功：恢復按鈕，讓老師重試
+      el.style.opacity='';el.style.pointerEvents='';
+      renderReviewItemActions(elId);
+      showToast('⚠️ 婉拒失敗，請再試一次');
+    });
 }
 
 // ============================================================
@@ -1157,7 +1181,7 @@ function renderDashToday(){
   const today=new Date();
   const ds=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
   const todayOrders=orders.filter(o=>o.date===ds).sort((a,b)=>a.time.localeCompare(b.time));
-  const COLOR={'新娘秘書':'','新娘試妝':'m','活動梳化':'g','彩妝教學':'g','婚紗拍攝造型':'','精緻柔霧眉設計':'amber'};
+  const COLOR={'新娘秘書':'','新娘試妝':'m','活動梳化':'g','彩妝教學':'g','彩妝教學-全妝課':'g','彩妝教學-體驗課':'g','婚紗拍攝造型':'','精緻柔霧眉設計':'amber'};
   const el=document.getElementById('dashTodayList');
   if(!el)return;
   if(!todayOrders.length){
@@ -1222,7 +1246,7 @@ function renderCalendar(){
       const dt=orders.filter(o=>o.date===ds);
       if(dt.length){const dr=document.createElement('div');dr.className='dot-row';dt.slice(0,3).forEach(t=>{const d=document.createElement('div');d.className=`cdot ${t.pay}`;dr.appendChild(d);});cell.appendChild(dr);}
       const bl=dayBlocks(ds);
-      if(bl.length){const tg=document.createElement('div');tg.style.cssText='font-size:9px;line-height:1.2;color:var(--sub);text-align:center;margin-top:2px';tg.textContent=bl.some(b=>!b.start)?'不接單':'部分不接';cell.appendChild(tg);}
+      if(bl.length){const full=bl.some(b=>!b.start);cell.classList.add(full?'blocked':'blocked-part');const tg=document.createElement('div');tg.style.cssText='font-size:9px;line-height:1.2;color:var(--red);font-weight:500;text-align:center;margin-top:2px';tg.textContent=full?'不接單':'部分不接';cell.appendChild(tg);}
       cell.addEventListener('click',()=>{calSelDate=ds;renderCalendar();renderDayDetail(ds);});
     }
     grid.appendChild(cell);
@@ -1772,6 +1796,7 @@ function openAddOrder(){
   renderAddSteps();renderAddForm();
 }
 function closeAddOrder(){
+  releaseConflictLock();
   // if cancelled without submitting (addSuccess not shown) and came from a review item, revert it
   const successShown=document.getElementById('addSuccess').style.display==='flex';
   if(currentReviewId&&!successShown){
@@ -1824,7 +1849,7 @@ function renderAddForm(){
         <div class="field"><label class="fl">服務類型 <span class="req">*</span></label>
           <select onchange="updateBlock(${i},'service',this.value)">
             <option value="">請選擇</option>
-            ${SERVICES.map(s=>`<option ${b.service===s?'selected':''}>${s}</option>`).join('')}
+            ${serviceOptions(b.service).map(s=>`<option ${b.service===s?'selected':''}>${s}</option>`).join('')}
           </select>
         </div>
         <div class="drow">
@@ -1925,7 +1950,7 @@ function addNextStep(){
   if(addStep===4){addSubmit();return;}
   addStep++;renderAddSteps();renderAddForm();
 }
-function addPrevStep(){if(addStep>1){addStep--;renderAddSteps();renderAddForm();}}
+function addPrevStep(){if(addStep>1){releaseConflictLock();addStep--;renderAddSteps();renderAddForm();}}
 function addToggleSkin(s){const i=addForm.skin.indexOf(s);i>-1?addForm.skin.splice(i,1):addForm.skin.push(s);renderAddForm();}
 
 // Service block management for Step 2
@@ -1964,6 +1989,7 @@ function addSelectClient(name,phone){
   document.getElementById('addExistingTag').style.display='block';
 }
 function addSubmit(){
+  if(isCheckingConflict){showToast('正在檢查檔期，請稍候再建立');return;}
   // force read from DOM inputs regardless of blur state
   for(let i=0;i<addForm.serviceBlocks.length;i++){
     const totalEl=document.getElementById('blockTotal'+i);
@@ -2030,8 +2056,13 @@ function addSubmit(){
     if(el){
       el.querySelector('.ri-actions').innerHTML=`<div style="grid-column:span 2;text-align:center;font-size:13px;font-weight:500;color:var(--green);padding:8px;background:var(--green-bg);border-radius:9px">✓ 訂單已建立</div>`;
     }
+    const doneElId=currentReviewId;
     if(currentPendingId&&isCloudReady()){
-      callAPI({action:'markPending',id:currentPendingId,status:'done'}).catch(e=>console.warn('標記待審核失敗:',e));
+      callAPI({action:'markPending',id:currentPendingId,status:'done'})
+        .then(()=>removeReviewEntry(doneElId))
+        .catch(e=>showToast('⚠️ 訂單已建立，但待審核未標記完成；下次同步仍會出現'));
+    } else {
+      removeReviewEntry(doneElId);
     }
     currentReviewId=null;
     currentPendingId=null;
@@ -2163,7 +2194,7 @@ function openEditSheet(id){
     ${siblings.length?`<div style="background:var(--rose-bg);border-radius:8px;padding:9px 12px;margin-bottom:14px;font-size:12px;color:var(--rose-deep)"><i class="ti ti-link" style="margin-right:5px"></i>此預約還包含：${siblings.map(s=>s.service+'('+s.date+')').join('、')}</div>`:''}
     <div class="field"><label class="fl">服務項目</label>
       <select id="editService">
-        ${SERVICES.map(s=>`<option ${t.service===s?'selected':''}>${s}</option>`).join('')}
+        ${serviceOptions(t.service).map(s=>`<option ${t.service===s?'selected':''}>${s}</option>`).join('')}
       </select>
     </div>
     <div class="drow">
@@ -2447,14 +2478,29 @@ async function deleteBlock(id){
 
 // 新增訂單 Step 4：逐項向 GS 查衝突，只顯示提醒，不影響「建立訂單」
 let conflictSeq=0;
+// ADM-A3.1：檔期檢查進行中 → 鎖住「建立訂單」，避免在提醒出現前送出
+let isCheckingConflict=false;
+function setConflictLock(on){
+  isCheckingConflict=on;
+  const btn=document.getElementById('addNextBtn');
+  if(!btn)return;
+  btn.style.opacity=on?'0.45':'';
+  btn.style.pointerEvents=on?'none':'';
+  if(addStep===4)btn.textContent=on?'檢查檔期中…':'建立訂單';
+}
+function releaseConflictLock(){
+  conflictSeq++;
+  if(isCheckingConflict)setConflictLock(false);
+}
 async function checkAddConflicts(){
   const box=document.getElementById('conflictBox');
   if(!box)return;
   const seq=++conflictSeq;
   const blocks=addForm.serviceBlocks.filter(b=>b.service&&b.date);
-  if(!blocks.length){box.innerHTML='';return;}
-  if(!isCloudReady()){box.innerHTML='';return;}
+  if(!blocks.length){box.innerHTML='';setConflictLock(false);return;}
+  if(!isCloudReady()){box.innerHTML='';setConflictLock(false);return;}
   box.innerHTML='<div style="font-size:12px;color:var(--sub);margin-bottom:12px"><i class="ti ti-loader" style="margin-right:4px"></i>正在檢查檔期…</div>';
+  setConflictLock(true);
   try{
     const found=[];
     for(const b of blocks){
@@ -2471,6 +2517,8 @@ async function checkAddConflicts(){
     if(seq!==conflictSeq)return;
     const el=document.getElementById('conflictBox');
     if(el)el.innerHTML=`<div style="font-size:12px;color:var(--amber);margin-bottom:12px">⚠️ 無法檢查檔期衝突（${err.message}），仍可建立訂單</div>`;
+  }finally{
+    if(seq===conflictSeq)setConflictLock(false);
   }
 }
 
@@ -2608,6 +2656,8 @@ function hideLoadingOverlay(instant){
 function updatePendingList(pendingItems){
   const list=document.getElementById('reviewList');
   if(!list){console.error('[updatePendingList] 找不到 reviewList');return;}
+  // ADM-A3.1：以雲端清單為準，先清掉已處理（done／rejected）的舊項目，計數才不會卡住
+  Object.keys(reviewData).forEach(k=>{delete reviewData[k];});
   if(!pendingItems.length){
     list.innerHTML='<div style="text-align:center;padding:32px 20px;color:var(--sub);font-size:13px;line-height:1.8">目前沒有待審核的預約表單</div>';
     updateReviewCountBadge();
@@ -2647,7 +2697,8 @@ function updatePendingList(pendingItems){
         ? item.services.map(s=>({service:s,date:fmtDate(item.date),loc:item.loc,venueAddress:item.venueAddress||'',people:item.people||'僅新娘',peopleNote:item.peopleNote||'',total:'',deposit:''}))
         : [{service:item.services,date:fmtDate(item.date),loc:item.loc,venueAddress:item.venueAddress||'',people:item.people||'僅新娘',peopleNote:item.peopleNote||'',total:'',deposit:''}],
       skin:item.skin||[], allergy:item.allergy||'', style:item.style||'', note:item.note||'',
-      phone:(item.phone||'').replace(/^'+/,'')
+      phone:(item.phone||'').replace(/^'+/,''),
+      pendingId:item.id
     };
   });
   updateReviewCountBadge();
