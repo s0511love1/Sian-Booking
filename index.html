@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!-- ============================================================
      Sian 嫻美學 · 後台管理 app（ADM）
-     版本：ADM-A4.1｜Sian-Booking A4.1版          日期：2026-10-06
+     版本：ADM-A5｜Sian-Booking A5版          日期：2026-10-07
      🔴 部署檔名必須改回：index.html
      Repo：Sian-Booking   →   https://sian-booking.vercel.app/
      知識庫：SIAN-ADM_規格.md ／ _資料模型.md ／ _踩坑.md
@@ -175,6 +175,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 .sched-card{flex:1;background:var(--rose-bg);border-radius:8px;padding:9px 12px;border-left:2px solid var(--rose)}
 .sched-card.g{border-left-color:var(--sage);background:var(--sage-bg)}
 .sched-card.m{border-left-color:#B5A8A0;background:#F0EDE9}
+.sched-card.amber{border-left-color:#C9973F;background:#F7EEDD}
 .sched-name{font-size:13px;font-weight:500;color:var(--text);margin-bottom:2px}
 .sched-detail{font-size:12px;font-weight:400;color:var(--sub);line-height:1.5}
 .order-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:0.5px solid var(--border-light);cursor:pointer}
@@ -399,6 +400,13 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 .ri-metas{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:8px}
 .ri-meta{font-size:12px;color:var(--sub);display:flex;align-items:center;gap:3px}
 .ri-note{font-size:12px;color:var(--sub);background:var(--rose-bg);border-radius:7px;padding:7px 10px;line-height:1.5;margin-bottom:10px}
+.ri-cat{display:inline-block;font-size:10px;font-weight:600;padding:1px 8px;border-radius:20px;margin-right:6px;vertical-align:1px;background:var(--rose-light);color:var(--rose-deep)}
+.ri-cat.teach{background:var(--sage-bg);color:#5E6E58;border:0.5px solid var(--sage)}
+.ri-cat.brow{background:#F7EEDD;color:#8A6420;border:0.5px solid #C9973F}
+.ri-qa{display:grid;gap:4px;margin-bottom:8px;font-size:12px}
+.ri-qa-row{display:flex;gap:8px;line-height:1.5}
+.ri-q{flex-shrink:0;min-width:84px;color:var(--sub)}
+.ri-a{color:var(--text);word-break:break-word}
 .ri-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .ri-btn{padding:10px;border-radius:9px;font-size:13px;font-weight:500;font-family:var(--font-main);cursor:pointer;text-align:center;border:0.5px solid var(--line);background:var(--white);color:var(--text);transition:all 0.15s}
 .ri-btn:hover{background:var(--rose-bg)}
@@ -654,7 +662,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
       <div class="sheet-body" id="calDetailBody"></div>
       <div class="sheet-actions" style="grid-template-columns:1fr 1fr 1fr">
         <div class="sact" onclick="openEditSheet(calDetailTaskId)"><i class="ti ti-edit"></i> 編輯</div>
-        <div class="sact" onclick="exportContract(calDetailTaskId)"><i class="ti ti-file-text"></i> 合約書</div>
+        <div class="sact" id="calContractBtn" onclick="exportContract(calDetailTaskId)"><i class="ti ti-file-text"></i> 合約書</div>
         <div class="sact primary" onclick="openPayConfirm(calDetailTaskId,'sheet')"><i class="ti ti-check"></i> 確認收款</div>
       </div>
       <div style="padding:10px 20px 0">
@@ -1106,7 +1114,7 @@ function rejectReview(elId, pendingId){
   const pid=pendingId||(reviewData[elId]&&reviewData[elId].pendingId)||'';
   const name=el.querySelector('.ri-name').textContent;
   el.style.opacity='0.5';el.style.pointerEvents='none';
-  el.querySelector('.ri-actions').innerHTML=`<div style="grid-column:span 2;text-align:center;font-size:13px;color:var(--sub);padding:8px;background:var(--warm);border-radius:9px">${name} 的申請已婉拒</div>`;
+  el.querySelector('.ri-actions').innerHTML=`<div style="grid-column:span 2;text-align:center;font-size:13px;color:var(--sub);padding:8px;background:var(--warm);border-radius:9px">${escHtml(name)} 的申請已婉拒</div>`;
   if(!pid||!isCloudReady()){removeReviewEntry(elId);return;}
   callAPI({action:'markPending',id:pid,status:'rejected'})
     .then(()=>removeReviewEntry(elId))
@@ -1286,6 +1294,9 @@ function renderDayDetail(ds){
 function openCalDetail(id){
   calDetailTaskId=id;
   const t=orders.find(x=>x.id===id);if(!t)return;
+  // ADM-A5：只有新秘類需要合約書（分類看佔用時長 E 欄）
+  const contractBtn=document.getElementById('calContractBtn');
+  if(contractBtn){const show=serviceCategoryOf(t.service)==='新秘';contractBtn.style.display=show?'':'none';if(contractBtn.parentElement)contractBtn.parentElement.style.gridTemplateColumns=show?'1fr 1fr 1fr':'1fr 1fr';}
   document.getElementById('calDetailTitle').textContent=t.name+'・訂單細節';
   const detRecv=t.pay==='paid'?t.final_amt:t.pay==='deposit'?t.deposit_amt:0;
   const detPend=t.pay==='paid'?0:t.pay==='deposit'?t.final_amt-t.deposit_amt:t.final_amt;
@@ -2395,6 +2406,18 @@ function isFullDayService(service){
   return service==='新娘秘書';
 }
 
+// ADM-A5：服務分類（新秘／教學／霧眉），以 GS 佔用時長 E 欄為準；還沒同步到檔期設定時用內建對照
+const DEFAULT_SERVICE_CATEGORY={'新娘秘書':'新秘','新娘試妝':'新秘','活動梳化':'新秘','婚紗拍攝造型':'新秘','彩妝教學-全妝課 (3.5小時)':'教學','彩妝教學-體驗課 (1小時)':'教學','彩妝教學':'教學','精緻柔霧眉設計':'霧眉'};
+function serviceCategoryOf(service){
+  const d=scheduleCfg&&scheduleCfg.durations?scheduleCfg.durations[service]:null;
+  if(d&&d.category!==undefined)return d.category||'';
+  return DEFAULT_SERVICE_CATEGORY[service]||'';
+}
+
+function escHtml(v){
+  return String(v===null||v===undefined?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
 function dayBlocks(ds){
   return ((scheduleCfg&&scheduleCfg.blocks)||[]).filter(b=>b.date===ds);
 }
@@ -2653,6 +2676,15 @@ function hideLoadingOverlay(instant){
 }
 
 // ── 更新待審核清單（從 cloud sync 回來的資料）──
+// ADM-A5：待審核卡片依產品類別顯示專屬問題；表單是公開的 → 所有文字一律跳脫
+const PENDING_CAT_CLASS={'新秘':'bridal','教學':'teach','霧眉':'brow'};
+const PENDING_QA_FIELDS=[['loc','開妝地點'],['venueAddress','宴會地址'],['people','服務人數'],['skin','膚質'],['allergy','過敏成分'],['style','風格偏好'],['focus','最想改善的部位'],['lastBrow','上一次霧眉']];
+function pendingQA(item){
+  return PENDING_QA_FIELDS.map(([k,q])=>{
+    const v=Array.isArray(item[k])?item[k].join('、'):(item[k]||'');
+    return v?[q,v]:null;
+  }).filter(Boolean);
+}
 function updatePendingList(pendingItems){
   const list=document.getElementById('reviewList');
   if(!list){console.error('[updatePendingList] 找不到 reviewList');return;}
@@ -2663,46 +2695,58 @@ function updatePendingList(pendingItems){
     updateReviewCountBadge();
     return;
   }
+  const svcsOf=(item)=>Array.isArray(item.services)?item.services:(item.services?[item.services]:[]);
   list.innerHTML=pendingItems.map(item=>{
-    const safeId='ri-'+item.id.replace(/[^a-zA-Z0-9-]/g,'_');
-    const svcLabel=Array.isArray(item.services)?item.services.join('、'):item.services||'';
-    const multi=Array.isArray(item.services)&&item.services.length>1;
+    const safeId='ri-'+String(item.id).replace(/[^a-zA-Z0-9-]/g,'_');
+    const svcs=svcsOf(item);
+    const multi=svcs.length>1;
+    const cat=item.category||'';
     const dt=new Date(item.submittedAt);
     const timeAgo=isNaN(dt)?'剛剛':formatTimeAgo(dt);
+    const qa=pendingQA(item);
+    const warns=item.warnings||[];
+    const conflicts=item.conflicts||[];
     return`<div class="review-item" id="${safeId}">
       <div class="ri-top"><div>
-        <div class="ri-name">${item.clientName}</div>
-        <div class="ri-svc">${svcLabel}${multi?` <span style="background:var(--rose-light);color:var(--rose-deep);font-size:10px;padding:1px 7px;border-radius:20px;font-weight:500;margin-left:4px">複選 ${item.services.length} 項</span>`:''}</div>
+        <div class="ri-name">${escHtml(item.clientName)}</div>
+        <div class="ri-svc">${cat?`<span class="ri-cat ${PENDING_CAT_CLASS[cat]||''}">${escHtml(cat)}</span>`:''}${escHtml(svcs.join('、'))}${multi?` <span style="background:var(--rose-light);color:var(--rose-deep);font-size:10px;padding:1px 7px;border-radius:20px;font-weight:500;margin-left:4px">複選 ${svcs.length} 項</span>`:''}</div>
       </div><div class="ri-time">${timeAgo}</div></div>
       <div class="ri-metas">
-        <div class="ri-meta"><i class="ti ti-calendar" style="font-size:12px"></i>${item.date||'—'}</div>
-        <div class="ri-meta"><i class="ti ti-map-pin" style="font-size:12px"></i>${item.loc||'—'}</div>
-        ${item.venueAddress?`<div class="ri-meta"><i class="ti ti-building" style="font-size:12px"></i>${item.venueAddress}</div>`:''}
-        <div class="ri-meta"><i class="ti ti-phone" style="font-size:12px"></i>${item.phone||'—'}</div>
+        <div class="ri-meta"><i class="ti ti-calendar" style="font-size:12px"></i>${escHtml(item.date||'—')}${item.time?' '+escHtml(item.time):''}</div>
+        <div class="ri-meta"><i class="ti ti-phone" style="font-size:12px"></i>${escHtml(item.phone||'—')}</div>
       </div>
-      ${item.allergy||item.skin.length?`<div class="ri-note">膚質：${item.skin.join('、')||'未填'}${item.allergy?'・過敏：'+item.allergy:''}${item.style?'・風格：'+item.style:''}</div>`:''}
-      ${(item.conflicts||[]).length?`<div class="ri-note" style="background:var(--red-light);color:var(--red);border:0.5px solid var(--unpaid-border)"><b>⚠️ 行程衝突！</b>（僅提醒，仍可建立訂單）<br>${item.conflicts.join('<br>')}</div>`:''}
+      ${qa.length?`<div class="ri-qa">${qa.map(([q,a])=>`<div class="ri-qa-row"><span class="ri-q">${q}</span><span class="ri-a">${escHtml(a)}</span></div>`).join('')}</div>`:''}
+      ${item.note?`<div class="ri-note">${escHtml(item.note).replace(/\n/g,'<br>')}</div>`:''}
+      ${warns.length?`<div class="ri-note" style="background:var(--amber-bg);color:var(--amber)">⚠️ ${warns.map(escHtml).join('<br>⚠️ ')}</div>`:''}
+      ${conflicts.length?`<div class="ri-note" style="background:var(--red-light);color:var(--red);border:0.5px solid var(--unpaid-border)"><b>⚠️ 行程衝突！</b>（僅提醒，仍可建立訂單）<br>${conflicts.map(escHtml).join('<br>')}</div>`:''}
       <div class="ri-actions">
-        <div class="ri-btn danger" data-elid="${safeId}" data-pid="${item.id}" onclick="rejectReview(this.dataset.elid,this.dataset.pid)"><i class="ti ti-x"></i> 婉拒</div>
-        <div class="ri-btn primary" data-elid="${safeId}" data-pid="${item.id}" onclick="confirmReview(this.dataset.elid,this.dataset.pid)"><i class="ti ti-check"></i> 建立訂單</div>
+        <div class="ri-btn danger" data-elid="${safeId}" data-pid="${escHtml(item.id)}" onclick="rejectReview(this.dataset.elid,this.dataset.pid)"><i class="ti ti-x"></i> 婉拒</div>
+        <div class="ri-btn primary" data-elid="${safeId}" data-pid="${escHtml(item.id)}" onclick="confirmReview(this.dataset.elid,this.dataset.pid)"><i class="ti ti-check"></i> 建立訂單</div>
       </div>
     </div>`;
   }).join('');
-  // 同時更新 reviewData（給 confirmReview 用）
+  // 同時更新 reviewData（給 confirmReview 帶入新增訂單用）
   pendingItems.forEach(item=>{
-    const safeId='ri-'+item.id.replace(/[^a-zA-Z0-9-]/g,'_');
+    const safeId='ri-'+String(item.id).replace(/[^a-zA-Z0-9-]/g,'_');
+    const svcs=svcsOf(item);
+    const bridal=(item.category||'新秘')==='新秘';
+    // 教學／霧眉的專屬答案在訂單沒有對應欄位 → 放到訂單備註開頭
+    const extra=[];
+    if(item.focus)extra.push('【最想改善的部位】'+item.focus);
+    if(item.lastBrow)extra.push('【上一次霧眉】'+item.lastBrow);
     reviewData[safeId]={
-      clientName:item.clientName, phone:item.phone,
-      serviceBlocks: Array.isArray(item.services)
-        ? item.services.map(s=>({service:s,date:fmtDate(item.date),loc:item.loc,venueAddress:item.venueAddress||'',people:item.people||'僅新娘',peopleNote:item.peopleNote||'',total:'',deposit:''}))
-        : [{service:item.services,date:fmtDate(item.date),loc:item.loc,venueAddress:item.venueAddress||'',people:item.people||'僅新娘',peopleNote:item.peopleNote||'',total:'',deposit:''}],
-      skin:item.skin||[], allergy:item.allergy||'', style:item.style||'', note:item.note||'',
+      clientName:item.clientName,
+      serviceBlocks:(svcs.length?svcs:['']).map(s=>({service:s,date:fmtDate(item.date),time:item.time||'',loc:bridal?(item.loc||''):'',venueAddress:bridal?(item.venueAddress||''):'',people:bridal?(item.people||'僅新娘'):'',peopleNote:item.peopleNote||'',total:'',deposit:''})),
+      skin:item.skin||[], allergy:item.allergy||'', style:item.style||'',
+      note:[extra.join('\n'),item.note||''].filter(Boolean).join('\n'),
       phone:(item.phone||'').replace(/^'+/,''),
-      pendingId:item.id
+      pendingId:item.id,
+      category:item.category||''
     };
   });
   updateReviewCountBadge();
 }
+
 
 function fmtDate(d){
   if(!d)return '';
@@ -3025,6 +3069,10 @@ let contractUrl = '';
 async function exportContract(id){
   const t = orders.find(x => x.id === id);
   if(!t) return;
+  if(serviceCategoryOf(t.service)!=='新秘'){
+    alert('「'+t.service+'」不是新秘類服務，不需要產生合約書');
+    return;
+  }
   if(!isCloudReady()){
     alert('需要雲端連線才能產生合約書，請確認網路連線後再試');
     return;
