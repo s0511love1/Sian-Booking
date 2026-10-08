@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!-- ============================================================
      Sian 嫻美學 · 後台管理 app（ADM）
-     版本：ADM-A5｜Sian-Booking A5版          日期：2026-10-07
+     版本：ADM-B1｜Sian-Booking B1版          日期：2026-10-08
      🔴 部署檔名必須改回：index.html
      Repo：Sian-Booking   →   https://sian-booking.vercel.app/
      知識庫：SIAN-ADM_規格.md ／ _資料模型.md ／ _踩坑.md
@@ -449,6 +449,16 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 /* edit order sheet */
 .edit-sheet-bg{position:absolute;inset:0;background:rgba(74,63,60,0.3);z-index:450;display:none;align-items:flex-end}
 .edit-sheet-bg.show{display:flex}
+/* ADM-B1：登入畫面（z-index 10001：蓋過啟動畫面與新增訂單 Overlay） */
+#loginScreen{position:fixed;inset:0;background:var(--warm);z-index:10001;display:none;flex-direction:column;align-items:center;justify-content:center;padding:24px 24px calc(24px + env(safe-area-inset-bottom))}
+#loginScreen .lg-title{font-family:'Georgia',serif;font-weight:300;font-size:22px;letter-spacing:0.12em;color:var(--rose-deep);margin-bottom:28px}
+#loginScreen form{width:100%;max-width:300px;display:flex;flex-direction:column;gap:12px}
+#loginScreen input{width:100%;box-sizing:border-box;padding:12px 14px;border:0.5px solid var(--line);border-radius:10px;background:var(--white);font-size:16px;color:var(--text);outline:none;-webkit-appearance:none}
+#loginScreen input:focus{border-color:var(--rose)}
+#loginScreen button{margin-top:6px;padding:12px;border:none;border-radius:10px;background:var(--rose-deep);color:#fff;font-size:15px;letter-spacing:0.1em;cursor:pointer}
+#loginScreen button:disabled{opacity:0.6}
+#loginMsg{min-height:20px;font-size:13px;color:var(--red);text-align:center;line-height:1.6}
+#loginMsg.info{color:var(--sub)}
 </style>
 </head>
 <body>
@@ -465,6 +475,17 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
   <div style="margin-top:40px;width:36px;height:2px;background:#DDD0CB;border-radius:1px;overflow:hidden">
     <div id="splashBar" style="width:0%;height:100%;background:#C4A49A;border-radius:1px;transition:width 0.8s ease"></div>
   </div>
+</div>
+
+<!-- ADM-B1：登入畫面 -->
+<div id="loginScreen" style="display:none">
+  <div class="lg-title">Sian 嫻美學 後台</div>
+  <form id="loginForm" onsubmit="submitLogin(event)" autocomplete="on">
+    <input id="loginUser" name="username" type="text" placeholder="帳號" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false">
+    <input id="loginPass" name="password" type="password" placeholder="密碼" autocomplete="current-password">
+    <button id="loginBtn" type="submit">登入</button>
+    <div id="loginMsg"></div>
+  </form>
 </div>
 
 <div id="pullIndicator">
@@ -490,12 +511,15 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
           </div>
           <div class="icon-btn av" onclick="toggleAvMenu()" style="position:relative">嫻
             <div id="avMenu" style="display:none;position:absolute;top:42px;right:0;background:var(--white);border:0.5px solid var(--line);border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,0.12);min-width:180px;z-index:600;overflow:hidden">
+              <div id="avUser" onclick="event.stopPropagation()" style="padding:10px 16px;font-size:12px;color:var(--sub);border-bottom:0.5px solid var(--border-light);cursor:default">尚未登入</div>
               <div onclick="event.stopPropagation();exportBackup()" style="padding:12px 16px;font-size:13px;font-weight:400;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:8px;border-bottom:0.5px solid var(--border-light)"><i class="ti ti-download"></i>匯出備份</div>
               <div onclick="event.stopPropagation();triggerImport()" style="padding:12px 16px;font-size:13px;font-weight:400;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:8px;border-bottom:0.5px solid var(--border-light)"><i class="ti ti-upload"></i>匯入進度</div>
               <div onclick="event.stopPropagation();exportExcel()" style="padding:12px 16px;font-size:13px;font-weight:400;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:8px;border-bottom:0.5px solid var(--border-light)"><i class="ti ti-file-spreadsheet"></i>匯出 Excel 報表</div>
               <div onclick="event.stopPropagation();manualSync()" style="padding:12px 16px;font-size:13px;font-weight:400;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:8px;border-bottom:0.5px solid var(--border-light)"><i class="ti ti-refresh"></i>立即同步</div>
               <div onclick="event.stopPropagation();openCancelledSheet()" style="padding:12px 16px;font-size:13px;font-weight:400;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:8px;border-bottom:0.5px solid var(--border-light)"><i class="ti ti-trash-x"></i>作廢區</div>
-              <div onclick="event.stopPropagation();archiveHistory()" style="padding:12px 16px;font-size:13px;font-weight:400;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:8px"><i class="ti ti-archive"></i>封存歷史訂單</div>
+              <div onclick="event.stopPropagation();archiveHistory()" style="padding:12px 16px;font-size:13px;font-weight:400;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:8px;border-bottom:0.5px solid var(--border-light)"><i class="ti ti-archive"></i>封存歷史訂單</div>
+              <div onclick="event.stopPropagation();logout(false)" style="padding:12px 16px;font-size:13px;font-weight:400;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:8px;border-bottom:0.5px solid var(--border-light)"><i class="ti ti-logout"></i>登出這支手機</div>
+              <div onclick="event.stopPropagation();logout(true)" style="padding:12px 16px;font-size:13px;font-weight:400;color:var(--red);cursor:pointer;display:flex;align-items:center;gap:8px"><i class="ti ti-device-mobile-off"></i>登出所有裝置</div>
             </div>
           </div>
           <input type="file" id="importFileInput" accept=".json,application/json" style="display:none" onchange="importBackup(event)">
@@ -927,16 +951,26 @@ const SKINS=['乾性','油性','混合性','敏感肌','痘痘肌','過敏史'];
 const STYLES=['自然清透感','韓系光澤感','歐美立體感','日系清甜感','復古優雅感'];
 
 // ============================================================
-// CLOUD CONFIG（填入你的 Apps Script 網址與密鑰）
+// CLOUD CONFIG（ADM-B1：前端只放 Apps Script 網址，不放任何金鑰）
 // ============================================================
 const CLOUD_CONFIG = {
-  API_URL: 'https://script.google.com/macros/s/AKfycbwQyfZDecV_vkAuI75dmVUEbasYe4LJzAGLGtFsfU4hz-2NRbXXS4q0lJmm3keFlPzoIg/exec',
-  SECRET_KEY: 'Sian嫻美學2026xyz'
+  API_URL: 'https://script.google.com/macros/s/AKfycbwQyfZDecV_vkAuI75dmVUEbasYe4LJzAGLGtFsfU4hz-2NRbXXS4q0lJmm3keFlPzoIg/exec'
 };
 
-// 是否已設定雲端（兩個都填了才算）
+// ADM-B1：登入狀態（權杖）存在這支手機；伺服器只存權杖的雜湊
+const SESSION_KEY='sian_session_v1';
+function getSession(){
+  try{
+    const s=JSON.parse(localStorage.getItem(SESSION_KEY)||'null');
+    return s&&typeof s.token==='string'&&s.token.length>=32?s:null;
+  }catch(e){ return null; }
+}
+function saveSession(s){ try{ localStorage.setItem(SESSION_KEY, JSON.stringify(s)); }catch(e){ console.error('登入狀態儲存失敗:', e); } }
+function clearSession(){ try{ localStorage.removeItem(SESSION_KEY); }catch(e){} }
+
+// 是否可以連雲端（有網址、且這支手機已登入）
 function isCloudReady(){
-  return !!(CLOUD_CONFIG.API_URL && CLOUD_CONFIG.SECRET_KEY);
+  return !!(CLOUD_CONFIG.API_URL && getSession());
 }
 
 // ============================================================
@@ -2553,23 +2587,33 @@ const STORAGE_KEY='sian_data_v1';
 let isSyncing=false;
 
 // ── 呼叫 Apps Script API（使用 GET + payload 參數，避免 CORS 問題）──
-async function callAPI(payload){
-  if(!isCloudReady()) throw new Error('尚未設定雲端連線');
-  const fullPayload={...payload, key:CLOUD_CONFIG.SECRET_KEY};
-  // Apps Script Web App 用 GET + p 參數傳遞 JSON，避免 CORS preflight 問題
-  const url=CLOUD_CONFIG.API_URL+'?p='+encodeURIComponent(JSON.stringify(fullPayload));
+// Apps Script Web App 用 GET + p 參數傳遞 JSON，避免 CORS preflight 問題
+async function fetchAPI(payload){
+  const url=CLOUD_CONFIG.API_URL+'?p='+encodeURIComponent(JSON.stringify(payload));
   const res=await fetch(url,{method:'GET',redirect:'follow'});
-  const data=await res.json();
-  if(!data.ok) throw new Error(data.error||'API 錯誤');
+  return await res.json();
+}
+// ADM-B1：伺服器說「沒登入／登入失效」→ 這支手機已被登出（或過期），清掉本機資料
+const SESSION_LOST_ERRORS=['login_required','session_expired'];
+async function callAPI(payload){
+  const s=getSession();
+  if(!CLOUD_CONFIG.API_URL||!s) throw new Error('尚未登入');
+  const data=await fetchAPI({...payload, token:s.token});
+  if(!data.ok){
+    if(SESSION_LOST_ERRORS.includes(data.error)){
+      const cur=getSession();
+      if(cur&&cur.token===s.token) handleSessionLost();   // 期間已重新登入的話，不要清掉新的登入
+      const e=new Error('登入已失效，請重新登入'); e.sessionLost=true; throw e;
+    }
+    throw new Error(data.error||'API 錯誤');
+  }
   return data;
 }
 
 // ── 從雲端同步所有資料（App 啟動時呼叫）──
 async function syncFromCloud(){
-  if(!isCloudReady()){
-      loadFromLocal();
-    return;
-  }
+  // ADM-B1：沒登入就不讀任何資料（登入畫面會擋住）；回傳 true＝真的同步成功
+  if(!isCloudReady()) return false;
   showLoadingOverlay('正在同步資料…');
   try{
     const data=await callAPI({action:'syncAll'});
@@ -2590,10 +2634,13 @@ async function syncFromCloud(){
         }
     saveToLocal();
     hideLoadingOverlay();
+    return true;
   }catch(err){
+    if(err&&err.sessionLost){ hideLoadingOverlay(true); return false; }
       loadFromLocal();
     hideLoadingOverlay();
     showToast('⚠️ 無法連線雲端，使用本機快取');
+    return false;
   }
 }
 
@@ -2642,6 +2689,7 @@ async function cloudSave(action, payload){
     try{
       await callAPI({action, ...payload});
     }catch(err){
+      if(err&&err.sessionLost) return;
       console.warn('雲端寫入失敗（本機已備份）:', err);
       showToast('⚠️ 雲端同步失敗，已保存在本機');
     }
@@ -2779,14 +2827,11 @@ function showToast(msg){
 // ── Avatar dropdown menu ──
 function manualSync(){
   document.getElementById('avMenu').style.display='none';
-  if(!isCloudReady()){
-    alert('尚未設定雲端連線，請在 CLOUD_CONFIG 填入 API_URL 和 SECRET_KEY');
-    return;
-  }
-  syncFromCloud().then(()=>{
+  if(!isCloudReady()){ showLogin(); return; }
+  syncFromCloud().then((ok)=>{
     renderCalendar();renderPayment();renderClients();
     renderDashToday();renderDashStats();updateReviewCountBadge();
-    showToast('✓ 已同步最新資料');
+    if(ok) showToast('✓ 已同步最新資料');
   });
 }
 
@@ -3062,6 +3107,125 @@ function dismissSplash(){
 }
 
 // ============================================================
+// ADM-B1：登入／登出／清除本機資料
+// ============================================================
+// 遠端登出後，手機上不可留下任何客戶資料
+const WIPE_SHEET_SEL='.sheet-bg.show,.exp-modal-bg.show,.manage-modal-bg.show,.pay-confirm-bg.show,.edit-sheet-bg.show';
+function wipeLocalData(){
+  try{ localStorage.removeItem(STORAGE_KEY); }catch(e){}
+  orders=[];expenses=[];tags=[];clients=[];
+  cancelledOrders=[];cancelledExpenses=[];scheduleCfg=null;
+  nextOrderId=1;nextExpId=1;nextTagId=15;
+  contractUrl='';
+  try{ document.querySelectorAll(WIPE_SHEET_SEL).forEach(el=>el.classList.remove('show')); }catch(e){}
+  const ov=document.getElementById('addOrderOverlay'); if(ov) ov.style.display='none';
+  try{ updatePendingList([]); }catch(e){ console.warn('updatePendingList:', e); }
+  try{ refreshAllViews(); }catch(e){ console.warn('refreshAllViews:', e); }
+  updateAvUser();
+}
+function showLogin(msg,isInfo){
+  const el=document.getElementById('loginScreen');
+  if(!el) return;
+  const m=document.getElementById('loginMsg');
+  m.textContent=msg||'';
+  m.classList.toggle('info',!!isInfo);
+  const b=document.getElementById('loginBtn');
+  b.disabled=false;b.textContent='登入';
+  document.getElementById('loginPass').value='';
+  const menu=document.getElementById('avMenu'); if(menu) menu.style.display='none';
+  hideLoadingOverlay(true);
+  el.style.display='flex';
+}
+function hideLogin(){
+  const el=document.getElementById('loginScreen');
+  if(el) el.style.display='none';
+}
+function handleSessionLost(){
+  clearSession();
+  wipeLocalData();
+  showLogin('登入已失效（可能已從其他地方登出），這支手機上的資料已清除，請重新登入。');
+}
+function updateAvUser(){
+  const el=document.getElementById('avUser');
+  if(!el) return;
+  const s=getSession();
+  el.textContent=s?('目前登入：'+(s.name||s.user)+'（'+s.user+'）'):'尚未登入';
+}
+function deviceLabel(){
+  const ua=String((navigator&&navigator.userAgent)||'');
+  const m=ua.match(/iPhone|iPad|Android|Macintosh|Windows/);
+  return (m?m[0]:'瀏覽器')+'・'+new Date().toISOString().slice(0,10);
+}
+let isLoggingIn=false;
+async function submitLogin(ev){
+  if(ev&&ev.preventDefault) ev.preventDefault();
+  if(isLoggingIn) return;
+  const user=document.getElementById('loginUser').value.trim().toLowerCase();
+  const password=document.getElementById('loginPass').value;
+  const msg=document.getElementById('loginMsg'), btn=document.getElementById('loginBtn');
+  msg.classList.remove('info');
+  if(!user||!password){ msg.textContent='請輸入帳號和密碼'; return; }
+  isLoggingIn=true;btn.disabled=true;btn.textContent='登入中…';msg.textContent='';
+  let data=null;
+  try{ data=await fetchAPI({action:'login',user,password,device:deviceLabel()}); }catch(e){ data=null; }
+  isLoggingIn=false;btn.disabled=false;btn.textContent='登入';
+  if(!data){ msg.textContent='無法連線，請確認網路後再試'; return; }
+  if(!data.ok){
+    msg.textContent=data.error==='bad_credentials'?'帳號或密碼錯誤'
+      :data.error==='locked'?'嘗試太多次，請 '+(data.wait||15)+' 分鐘後再試'
+      :'登入失敗：'+(data.error||'未知錯誤');
+    return;
+  }
+  saveSession({token:data.token,user:data.user,name:data.name||data.user,exp:data.exp});
+  if(!getSession()){ msg.textContent='這支手機無法保存登入狀態，請關閉「私密瀏覽」後再試'; return; }
+  document.getElementById('loginPass').value='';
+  hideLogin();
+  updateAvUser();
+  lastSessionCheck=Date.now();
+  await syncFromCloud();
+  try{ refreshAllViews(); }catch(e){ console.warn('refreshAllViews:', e); }
+  try{ updateReviewCountBadge(); }catch(e){ console.warn('updateReviewCountBadge:', e); }
+}
+// all=false：只登出這支手機；all=true：登出這個帳號的所有裝置（雲端失敗就明說，不假裝成功）
+async function logout(all){
+  const menu=document.getElementById('avMenu'); if(menu) menu.style.display='none';
+  const s=getSession();
+  if(!s){ showLogin(); return; }
+  if(all){
+    if(!confirm('登出所有裝置？\n包含這支手機，「'+(s.name||s.user)+'」登入的所有手機都要重新登入，那些手機上的資料也會清除。')) return;
+    showLoadingOverlay('正在登出所有裝置…');
+    try{
+      const r=await callAPI({action:'logoutAll'});
+      clearSession();wipeLocalData();
+      showLogin('已登出 '+r.revoked+' 台裝置（含這支），這支手機的資料已清除。',true);
+    }catch(err){
+      hideLoadingOverlay(true);
+      if(err.sessionLost) return;
+      alert('登出所有裝置失敗：'+err.message+'\n其他裝置仍是登入狀態，請確認網路後再試。');
+    }
+    return;
+  }
+  if(!confirm('登出這支手機？\n這支手機上的資料會一併清除，下次登入會重新從雲端下載。')) return;
+  let note='已登出，這支手機的資料已清除。';
+  try{ await callAPI({action:'logout'}); }
+  catch(err){ if(!err.sessionLost) note='已登出並清除這支手機的資料。（網路不通，伺服器上的登入紀錄沒刪到；要作廢可在試算表「嫻美學設定 → 登出某個帳號的所有裝置」）'; }
+  clearSession();wipeLocalData();
+  showLogin(note,true);
+}
+// 切回 App 時確認是否已被遠端登出（事件觸發，不輪詢；最少間隔 60 秒）
+const SESSION_CHECK_GAP=60*1000;
+let lastSessionCheck=0;
+async function checkSessionAlive(){
+  if(!getSession()) return;
+  const now=Date.now();
+  if(now-lastSessionCheck<SESSION_CHECK_GAP) return;
+  lastSessionCheck=now;
+  try{ await callAPI({action:'whoami'}); }catch(e){ /* 登入失效已在 callAPI 處理；網路不通就等下次 */ }
+}
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') checkSessionAlive(); });
+window.addEventListener('pageshow',(e)=>{ if(e&&e.persisted) checkSessionAlive(); });
+
+// ============================================================
 // CONTRACT EXPORT
 // ============================================================
 let contractUrl = '';
@@ -3134,7 +3298,7 @@ function openContractUrl(){
   const PTR_OVERLAY_SEL='.sheet-bg.show,.exp-modal-bg.show,.manage-modal-bg.show,.pay-confirm-bg.show,.edit-sheet-bg.show';
   function isPullBlocked(target){
     if(document.querySelector(PTR_OVERLAY_SEL)) return true;
-    const styleOpen=[['addOrderOverlay','flex'],['loadingOverlay','flex'],['avMenu','block']];
+    const styleOpen=[['addOrderOverlay','flex'],['loadingOverlay','flex'],['avMenu','block'],['loginScreen','flex']];
     for(const [id,shown] of styleOpen){
       const el=document.getElementById(id);
       if(el&&el.style.display===shown) return true;
@@ -3186,10 +3350,10 @@ function openContractUrl(){
     if(diff>THRESHOLD){
       // 觸發同步
       showToast('正在更新…');
-      await syncFromCloud();
+      const ok=await syncFromCloud();
       renderCalendar();renderPayment();renderClients();
       renderDashToday();renderDashStats();updateReviewCountBadge();
-      showToast('✓ 已更新');
+      if(ok) showToast('✓ 已更新');
     }
     startY=0; currentY=0;
   });
@@ -3197,6 +3361,13 @@ function openContractUrl(){
 
 // INIT
 async function initApp(){
+  // ADM-B1：這支手機還沒登入 → 只顯示登入畫面，不載入本機資料
+  if(!getSession()){
+    dismissSplash();
+    showLogin();
+    return;
+  }
+  updateAvUser();
   // Step 1: 先從本機快取渲染（快速，避免白畫面）
   try {
     loadFromLocal();
