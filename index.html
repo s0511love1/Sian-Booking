@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!-- ============================================================
      Sian 嫻美學 · 後台管理 app（ADM）
-     版本：ADM-B1｜Sian-Booking B1版          日期：2026-10-08
+     版本：ADM-B4｜Sian-Booking B4版          日期：2026-10-13
      🔴 部署檔名必須改回：index.html
      Repo：Sian-Booking   →   https://sian-booking.vercel.app/
      知識庫：SIAN-ADM_規格.md ／ _資料模型.md ／ _踩坑.md
@@ -449,6 +449,45 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 /* edit order sheet */
 .edit-sheet-bg{position:absolute;inset:0;background:rgba(74,63,60,0.3);z-index:450;display:none;align-items:flex-end}
 .edit-sheet-bg.show{display:flex}
+/* ADM-B4：首頁戰情分析 ── 圖表專用高對比色（已驗證色盲可辨；與 App 的玫瑰色系分開） */
+:root{--viz-1:#2a78d6;--viz-2:#eb6834;--viz-3:#1baf7a;--viz-other:#9a9892;--viz-paid:#1c5cab;--viz-unpaid:#86b6ef;--viz-track:#f0efec}
+.ana-sync{font-size:11px;color:var(--sub);text-align:right}
+.ana-tabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px}
+.ana-tabs::-webkit-scrollbar{display:none}
+.ana-custom{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:12px;color:var(--sub)}
+.ana-custom input{flex:1;min-width:0;padding:6px 8px;border:0.5px solid var(--line);border-radius:8px;font-size:13px;font-family:var(--font-main);color:var(--text);background:var(--white)}
+.ana-note{font-size:11px;color:var(--sub);padding:12px 16px 0}
+.ana-kpi .stat-v{font-size:21px;white-space:nowrap}
+.ana-net{font-size:12px;color:var(--sub);padding:0 16px 12px}
+.ana-row{display:grid;grid-template-columns:100px 1fr auto;align-items:center;gap:8px;margin:7px 0;font-size:12px}
+.ana-row .l{color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ana-row .v{color:var(--sub);font-size:11px;text-align:right;white-space:nowrap}
+.ana-bar{height:12px;background:var(--viz-track);border-radius:4px;overflow:hidden;display:flex;gap:2px}
+.ana-bar>div{height:100%;border-radius:4px}
+.ana-row.tap{cursor:pointer;border-radius:6px}
+.ana-row.tap.on .l{color:var(--viz-paid);font-weight:500}
+.ana-leg{display:flex;gap:12px;font-size:11px;color:var(--sub);margin-top:6px}
+.ana-leg i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:4px;vertical-align:middle}
+.ana-cat{font-size:12px;font-weight:500;color:var(--rose-deep);margin:14px 0 2px;display:flex;align-items:center;gap:6px}
+.ana-cat:first-child{margin-top:0}
+.ana-dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0}
+.ana-sub{font-size:11px;color:var(--sub);margin:-4px 0 6px 108px}
+.ana-list-item{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:0.5px solid var(--border-light);font-size:12px;cursor:pointer}
+.ana-list-item:last-child{border-bottom:none}
+.ana-heat{display:grid;grid-template-columns:52px repeat(7,1fr);gap:3px;font-size:11px}
+.ana-heat .h{color:var(--sub);text-align:center;padding:2px 0}
+.ana-heat .s{color:var(--sub);display:flex;align-items:center;font-size:10px;line-height:1.2}
+.ana-heat .c{height:30px;border-radius:4px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:2px solid transparent;font-weight:500}
+.ana-heat .c.on{border-color:var(--text)}
+.ana-h3{font-size:12px;font-weight:500;color:var(--text);margin:14px 0 4px}
+.ana-h3:first-child{margin-top:0}
+.ana-foot{font-size:11px;color:var(--sub);margin-top:8px;line-height:1.6}
+.ana-empty{text-align:center;padding:24px 0;color:var(--sub);font-size:13px}
+.ana-toggle{font-size:12px;color:var(--rose-deep);cursor:pointer;margin-top:10px;display:inline-block}
+.ana-quote{font-size:12px;color:var(--text);padding:7px 0;border-bottom:0.5px solid var(--border-light);line-height:1.6}
+.ana-quote span{display:block;color:var(--sub);font-size:11px}
+.ana-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.ana-chip{font-size:11px;padding:3px 9px;border-radius:12px;background:var(--viz-track);color:var(--text)}
 /* ADM-B1：登入畫面（z-index 10001：蓋過啟動畫面與新增訂單 Overlay） */
 #loginScreen{position:fixed;inset:0;background:var(--warm);z-index:10001;display:none;flex-direction:column;align-items:center;justify-content:center;padding:24px 24px calc(24px + env(safe-area-inset-bottom))}
 #loginScreen .lg-title{font-family:'Georgia',serif;font-weight:300;font-size:22px;letter-spacing:0.12em;color:var(--rose-deep);margin-bottom:28px}
@@ -556,6 +595,15 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
           <div class="bar-leg"><span id="dashIncomePct">已收 0%</span><span id="dashIncomeRemain">待收 NT$ 0</span></div>
         </div>
       </div>
+      <!-- ADM-B4：戰情分析（期間篩選＋各項圖表直接放在首頁） -->
+      <div class="dash-section">
+        <div class="sec-head"><div class="sec-title">戰情分析</div><div class="ana-sync" id="anaSync"></div></div>
+        <div class="ana-tabs" id="anaTabs"></div>
+        <div class="ana-custom" id="anaCustom" style="display:none">
+          <input type="date" id="anaFrom" onchange="anaSetCustom()"><span>～</span><input type="date" id="anaTo" onchange="anaSetCustom()">
+        </div>
+      </div>
+      <div id="anaBody"></div>
     </div>
   </div>
 
@@ -989,6 +1037,9 @@ let cancelledExpenses=[];
 const CANCEL_KEEP_DAYS=30; // 僅供顯示；實際清除以 GS 的 PURGE_DAYS 為準
 // ADM-A3：檔期設定（模板／佔用時長／緩衝／不接單）—— 唯一來源是 GS，前端只讀
 let scheduleCfg=null;
+// ADM-B3：教學關鍵字字典（GS「教學關鍵字」分頁）與最近一次成功同步的時間
+let focusKeywords=[];
+let lastSyncAt='';
 
 // ============================================================
 // NAVIGATION
@@ -1002,7 +1053,7 @@ function navTo(page){
   if(navEl)navEl.classList.add('active');
   // close any open overlays
   document.querySelectorAll('.sheet-bg.show,.exp-modal-bg.show,.manage-modal-bg.show').forEach(el=>el.classList.remove('show'));
-  if(page==='dashboard'){renderDashToday();renderDashStats();}
+  if(page==='dashboard'){renderDashToday();renderDashStats();renderAnalyticsSafe();}
   if(page==='calendar')renderCalendar();
   if(page==='payment')renderPayment();
   if(page==='clients')renderClients();
@@ -2314,6 +2365,7 @@ function refreshAllViews(){
   renderClients();
   renderDashStats();
   renderDashToday();
+  renderAnalyticsSafe();
 }
 
 // 以 GS 回傳的重算結果為準；沒有回傳時用本機有效訂單重算
@@ -2624,6 +2676,8 @@ async function syncFromCloud(){
     cancelledOrders   = data.cancelledOrders   || [];
     cancelledExpenses = data.cancelledExpenses || [];
     scheduleCfg       = data.schedule || scheduleCfg;
+    if(Array.isArray(data.focusKeywords)) focusKeywords=data.focusKeywords;
+    lastSyncAt=new Date().toISOString();
     nextOrderId   = data.nextOrderId   || 1;
     nextExpId     = data.nextExpenseId || 1;
     nextTagId     = data.nextTagId     || 15;
@@ -2651,6 +2705,7 @@ function saveToLocal(){
       orders, expenses, tags, clients,
       cancelledOrders, cancelledExpenses, scheduleCfg,
       nextOrderId, nextExpId, nextTagId,
+      focusKeywords, lastSyncAt,
       savedAt:new Date().toISOString()
     }));
   }catch(e){ console.error('本機儲存失敗:', e); }
@@ -2672,6 +2727,8 @@ function loadFromLocal(){
     if(data.nextOrderId) nextOrderId=data.nextOrderId;
     if(data.nextExpId)   nextExpId=data.nextExpId;
     if(data.nextTagId)   nextTagId=data.nextTagId;
+    if(Array.isArray(data.focusKeywords)) focusKeywords=data.focusKeywords;
+    if(data.lastSyncAt) lastSyncAt=data.lastSyncAt;
     return true;
   }catch(e){ console.error('本機讀取失敗:', e); return false; }
 }
@@ -2830,7 +2887,7 @@ function manualSync(){
   if(!isCloudReady()){ showLogin(); return; }
   syncFromCloud().then((ok)=>{
     renderCalendar();renderPayment();renderClients();
-    renderDashToday();renderDashStats();updateReviewCountBadge();
+    renderDashToday();renderDashStats();updateReviewCountBadge();renderAnalyticsSafe();
     if(ok) showToast('✓ 已同步最新資料');
   });
 }
@@ -3107,6 +3164,245 @@ function dismissSplash(){
 }
 
 // ============================================================
+// ADM-B4：首頁戰情分析（B3 的分析邏輯整合進首頁）—— 只讀手機上已同步的資料，不打新的 API
+//   圖表配色：資料視覺化專用的高對比色（--viz-*，已驗證色盲可辨），與 App 的玫瑰色系分開
+//   期間依「服務日期」；作廢單本來就不在 orders 裡；已收／未收沿用 calcRecv／calcPend（與首頁一致）
+//   教學「最想改善的部位」取自訂單備註開頭的【最想改善的部位】（表單轉單時寫入），
+//   依 GS「教學關鍵字」分頁派發的 focusKeywords 歸類；前端不寫死任何關鍵字
+// ============================================================
+const ANA_PRESETS=[['month','本月'],['last','上月'],['q3','近 3 個月'],['year','今年'],['custom','自訂']];
+const ANA_CATS=['新秘','教學','霧眉'];
+const ANA_CAT_COLOR={'新秘':'var(--viz-1)','教學':'var(--viz-2)','霧眉':'var(--viz-3)','':'var(--viz-other)'};
+// 檔期熱度：單一藍色由淺到深（越深越多單）
+const ANA_HEAT_RAMP=['#b7d3f6','#86b6ef','#3987e5','#1c5cab','#104281'];
+const ANA_SLOTS=['上午','下午','晚上','整天／未填時間'];
+const ANA_WEEK=['一','二','三','四','五','六','日'];
+const ANA_NO_ALLERGY=['無','沒有','无','none','no','-','—','無過敏','沒有過敏'];
+const ANA_OTHER='其他';
+let anaState={preset:'month',from:'',to:'',mix:'rev',showFocusRaw:false,cell:'',bucket:-1};
+
+function anaPad(n){return String(n).padStart(2,'0');}
+// 月份從 1 起算；日可以是 0（＝上個月最後一天）或超過當月天數（自動進位）
+function anaYmd(y,m,d){const dt=new Date(y,m-1,d);return dt.getFullYear()+'-'+anaPad(dt.getMonth()+1)+'-'+anaPad(dt.getDate());}
+function anaToday(){const d=new Date();return anaYmd(d.getFullYear(),d.getMonth()+1,d.getDate());}
+function anaIsYmd(v){return /^\d{4}-\d{2}-\d{2}$/.test(String(v||''));}
+function anaAddDays(ymd,n){const p=ymd.split('-').map(Number);return anaYmd(p[0],p[1],p[2]+n);}
+function anaUtc(ymd){const p=ymd.split('-').map(Number);return Date.UTC(p[0],p[1]-1,p[2]);}
+function anaRange(preset,today,from,to){
+  const p=today.split('-').map(Number),y=p[0],m=p[1];
+  if(preset==='last')return {from:anaYmd(y,m-1,1),to:anaYmd(y,m,0)};
+  if(preset==='q3')return {from:anaYmd(y,m-2,1),to:anaYmd(y,m+1,0)};
+  if(preset==='year')return {from:y+'-01-01',to:y+'-12-31'};
+  if(preset==='custom'&&anaIsYmd(from)&&anaIsYmd(to))return from<=to?{from:from,to:to}:{from:to,to:from};
+  return {from:anaYmd(y,m,1),to:anaYmd(y,m+1,0)};
+}
+function anaFocusText(note){const m=String(note||'').match(/【最想改善的部位】([^\n]*)/);return m?m[1].trim():'';}
+function anaNorm(s){s=String(s===null||s===undefined?'':s);return (s.normalize?s.normalize('NFKC'):s).toLowerCase().trim();}
+// 一段原文可以同時對到多個歸類；都對不到回傳空陣列（由呼叫端歸到「其他」）
+function anaClassify(text,dict){
+  const t=anaNorm(text);
+  if(!t)return [];
+  const hit=[];
+  (Array.isArray(dict)?dict:[]).forEach(d=>{
+    if(!d||!d.label)return;
+    const kws=Array.isArray(d.keywords)?d.keywords:[];
+    if(kws.some(k=>{const n=anaNorm(k);return n&&t.indexOf(n)>=0;})&&hit.indexOf(String(d.label))<0)hit.push(String(d.label));
+  });
+  return hit;
+}
+function anaSlotOf(time){
+  const m=String(time||'').match(/^(\d{1,2}):(\d{2})$/);
+  if(!m)return 3;
+  const h=+m[1];
+  return h<12?0:h<18?1:2;
+}
+function anaWeekdayOf(ymd){return (new Date(anaUtc(ymd)).getUTCDay()+6)%7;}   // 週一＝0
+
+// 純計算（不碰畫面），方便測試
+function anaCompute(list,exps,r,dict){
+  const inR=d=>{d=String(d||'').slice(0,10);return anaIsYmd(d)&&d>=r.from&&d<=r.to;};
+  const num=v=>Number(v)||0;
+  const ords=(list||[]).filter(o=>o&&o.status!=='cancelled'&&inR(o.date))
+    .sort((a,b)=>String(a.date).localeCompare(String(b.date))||String(a.time||'').localeCompare(String(b.time||'')));
+  const S={range:r,count:ords.length,revenue:0,received:0,pending:0,expense:0};
+  ords.forEach(o=>{S.revenue+=num(o.final_amt);S.received+=calcRecv(o);S.pending+=calcPend(o);});
+  (exps||[]).forEach(e=>{if(e&&inR(e.date))S.expense+=num(e.amt);});
+  S.net=S.received-S.expense;
+  // 營收趨勢：期間 ≤ 31 天依週，否則依月
+  const span=Math.round((anaUtc(r.to)-anaUtc(r.from))/864e5)+1;
+  const md=s=>(+s.slice(5,7))+'/'+(+s.slice(8,10));
+  S.byWeek=span<=31;
+  S.buckets=[];
+  if(S.byWeek){
+    for(let i=0;i<span;i+=7){const a=anaAddDays(r.from,i),b=anaAddDays(r.from,Math.min(i+6,span-1));S.buckets.push({from:a,to:b,label:md(a)+'–'+md(b),rev:0,recv:0});}
+  }else{
+    let y=+r.from.slice(0,4),m=+r.from.slice(5,7);
+    const ey=+r.to.slice(0,4),em=+r.to.slice(5,7),multiYear=y!==ey;
+    while(y<ey||(y===ey&&m<=em)){
+      const a=anaYmd(y,m,1),b=anaYmd(y,m+1,0);
+      S.buckets.push({from:a<r.from?r.from:a,to:b>r.to?r.to:b,label:(multiYear?String(y).slice(2)+'/':'')+m+'月',rev:0,recv:0});
+      m++;if(m>12){m=1;y++;}
+    }
+  }
+  ords.forEach(o=>{const b=S.buckets.find(x=>o.date>=x.from&&o.date<=x.to);if(b){b.rev+=num(o.final_amt);b.recv+=calcRecv(o);}});
+  S.unpaid=ords.filter(o=>calcPend(o)>0);
+  // 服務組合：依分類分組（分類以佔用時長 E 欄為準）
+  const groups={};
+  ords.forEach(o=>{
+    const c=serviceCategoryOf(o.service)||'';
+    const g=groups[c]=groups[c]||{cat:c,count:0,rev:0,services:{}};
+    const k=o.service||'—';
+    const sv=g.services[k]=g.services[k]||{service:k,count:0,rev:0};
+    g.count++;g.rev+=num(o.final_amt);sv.count++;sv.rev+=num(o.final_amt);
+  });
+  S.mix=ANA_CATS.concat(['']).filter(c=>groups[c]).map(c=>{
+    const g=groups[c];
+    g.services=Object.values(g.services).sort((a,b)=>b.rev-a.rev||b.count-a.count);
+    return g;
+  });
+  // 檔期熱度：星期 × 時段
+  S.heat=ANA_SLOTS.map(()=>ANA_WEEK.map(()=>({n:0,svc:{}})));
+  S.heatMax=0;
+  ords.forEach(o=>{
+    const c=S.heat[anaSlotOf(o.time)][anaWeekdayOf(String(o.date).slice(0,10))];
+    c.n++;c.svc[o.service||'—']=(c.svc[o.service||'—']||0)+1;
+    if(c.n>S.heatMax)S.heatMax=c.n;
+  });
+  // 新秘客人輪廓
+  const bridal=ords.filter(o=>serviceCategoryOf(o.service)==='新秘');
+  const countBy=(arr,keyFn,base)=>{const m={};(base||[]).forEach(k=>{m[k]=0;});arr.forEach(o=>{[].concat(keyFn(o)).forEach(k=>{m[k]=(m[k]||0)+1;});});return Object.keys(m).map(k=>({k:k,n:m[k]})).filter(x=>x.n>0).sort((a,b)=>b.n-a.n);};
+  S.bridal={
+    n:bridal.length,
+    style:countBy(bridal,o=>String(o.style||'').trim()||'未填',STYLES),
+    skin:countBy(bridal,o=>{const s=Array.isArray(o.skin)?o.skin:String(o.skin||'').split('、');return s.map(x=>String(x).trim()).filter(Boolean);},SKINS),
+    allergy:bridal.filter(o=>{const a=anaNorm(o.allergy);return a&&ANA_NO_ALLERGY.indexOf(a)<0;}).length,
+    people:countBy(bridal,o=>String(o.people||'').trim()||'未填')
+  };
+  // 教學：最想改善的部位
+  const teach=ords.filter(o=>serviceCategoryOf(o.service)==='教學');
+  const items=[];
+  teach.forEach(o=>{const t=anaFocusText(o.note);if(t){const labels=anaClassify(t,dict);items.push({id:o.id,date:o.date,service:o.service,text:t,labels:labels.length?labels:[ANA_OTHER]});}});
+  const lc={};
+  (Array.isArray(dict)?dict:[]).forEach(d=>{if(d&&d.label)lc[String(d.label)]=0;});
+  items.forEach(it=>it.labels.forEach(l=>{lc[l]=(lc[l]||0)+1;}));
+  const order=Object.keys(lc).filter(k=>k!==ANA_OTHER);
+  S.teach={n:teach.length,items:items,labels:order.map(k=>({k:k,n:lc[k]})).filter(x=>x.n>0).sort((a,b)=>b.n-a.n||order.indexOf(a.k)-order.indexOf(b.k)).concat(lc[ANA_OTHER]?[{k:ANA_OTHER,n:lc[ANA_OTHER]}]:[])};
+  return S;
+}
+
+// ── 畫面 ──
+function anaMoney(n){return 'NT$ '+Math.round(Number(n)||0).toLocaleString();}
+// 服務名稱太長時去掉結尾的（時數）只用於顯示
+function anaShortSvc(s){return String(s||'').replace(/\s*[（(][^）)]*[）)]\s*$/,'')||'—';}
+function anaPct(a,b){return b>0?Math.round(a/b*100):0;}
+// 長條：寬度 0 的段落不畫（才不會多出間隔）；第三個值是滑鼠移上去的說明
+function anaBar(parts){return '<div class="ana-bar">'+parts.filter(p=>p[0]>0).map(p=>`<div style="width:${Math.max(0,Math.min(100,p[0]))}%;background:${p[1]}"${p[2]?` title="${escHtml(p[2])}"`:''}></div>`).join('')+'</div>';}
+function anaHeatColor(n,max){if(!n||!max)return '';const i=Math.min(ANA_HEAT_RAMP.length-1,Math.max(0,Math.ceil(n/max*ANA_HEAT_RAMP.length)-1));return ANA_HEAT_RAMP[i];}
+function anaRow(label,pct,color,value){return `<div class="ana-row"><div class="l">${escHtml(label)}</div>${anaBar([[pct,color]])}<div class="v">${value}</div></div>`;}
+function anaSection(title,inner,extra){return `<div class="dash-section"><div class="sec-head"><div class="sec-title">${title}</div>${extra||''}</div><div class="panel">${inner}</div></div>`;}
+// 首頁一定要畫完、啟動畫面才關得掉 → 分析區塊出錯只記錄，不影響其他區塊
+function renderAnalyticsSafe(){try{renderAnalytics();}catch(e){console.warn('renderAnalytics:',e);}}
+function anaSetPreset(p){
+  anaState.preset=p;anaState.cell='';anaState.bucket=-1;
+  if(p==='custom'&&!(anaIsYmd(anaState.from)&&anaIsYmd(anaState.to))){const r=anaRange('month',anaToday());anaState.from=r.from;anaState.to=r.to;}
+  renderAnalytics();
+}
+function anaSetCustom(){anaState.from=document.getElementById('anaFrom').value;anaState.to=document.getElementById('anaTo').value;anaState.cell='';anaState.bucket=-1;renderAnalytics();}
+function anaSetMix(m){anaState.mix=m;renderAnalytics();}
+function anaToggleFocusRaw(){anaState.showFocusRaw=!anaState.showFocusRaw;renderAnalytics();}
+function anaPickCell(s,w){const k=s+'-'+w;anaState.cell=anaState.cell===k?'':k;renderAnalytics();}
+function anaPickBucket(i){anaState.bucket=anaState.bucket===i?-1:i;renderAnalytics();}
+
+function renderAnalytics(){
+  const body=document.getElementById('anaBody');
+  if(!body)return;
+  const r=anaRange(anaState.preset,anaToday(),anaState.from,anaState.to);
+  const S=anaCompute(orders,expenses,r,focusKeywords);
+  // 期間按鈕與自訂日期
+  document.getElementById('anaTabs').innerHTML=ANA_PRESETS.map(([k,l])=>`<div class="ftab ${anaState.preset===k?'on':''}" onclick="anaSetPreset('${k}')">${l}</div>`).join('');
+  const custom=document.getElementById('anaCustom');
+  custom.style.display=anaState.preset==='custom'?'flex':'none';
+  if(anaState.preset==='custom'){document.getElementById('anaFrom').value=r.from;document.getElementById('anaTo').value=r.to;}
+  const sync=document.getElementById('anaSync');
+  if(sync){const t=lastSyncAt?new Date(lastSyncAt):null;sync.textContent=t&&!isNaN(t)?'資料更新 '+(t.getMonth()+1)+'/'+t.getDate()+' '+anaPad(t.getHours())+':'+anaPad(t.getMinutes()):'本機資料';}
+  let h=`<div class="ana-note">${r.from} ～ ${r.to}・依服務日期・作廢單不計入</div>`;
+  // ② 總覽
+  h+=`<div class="stats-grid ana-kpi">
+    <div class="stat"><div class="stat-l">訂單數</div><div class="stat-v">${S.count}</div><div class="stat-s">筆</div></div>
+    <div class="stat"><div class="stat-l">營收（應收）</div><div class="stat-v">${anaMoney(S.revenue)}</div><div class="stat-s">訂單總額</div></div>
+    <div class="stat"><div class="stat-l">已收</div><div class="stat-v">${anaMoney(S.received)}</div><div class="stat-s">${anaPct(S.received,S.revenue)}%</div></div>
+    <div class="stat"><div class="stat-l">未收款</div><div class="stat-v warn">${anaMoney(S.pending)}</div><div class="stat-s">${S.unpaid.length} 筆</div></div>
+  </div>
+  <div class="ana-net">支出 ${anaMoney(S.expense)}・淨收入（已收－支出）${anaMoney(S.net)}</div>`;
+  if(!S.count){body.innerHTML=h+'<div class="ana-empty">這段期間沒有訂單</div>';return;}
+  // ③ 營收與收款
+  const maxRev=Math.max.apply(null,S.buckets.map(b=>b.rev).concat([1]));
+  let rev=S.buckets.map((b,i)=>`<div class="ana-row tap ${anaState.bucket===i?'on':''}" onclick="anaPickBucket(${i})"><div class="l">${b.label}</div>${anaBar([[b.recv/maxRev*100,'var(--viz-paid)','已收 '+anaMoney(b.recv)],[(b.rev-b.recv)/maxRev*100,'var(--viz-unpaid)','未收 '+anaMoney(b.rev-b.recv)]])}<div class="v">${anaMoney(b.rev)}</div></div>`).join('');
+  rev+=`<div class="ana-leg"><span><i style="background:var(--viz-paid)"></i>已收</span><span><i style="background:var(--viz-unpaid)"></i>未收</span><span>${S.byWeek?'依週':'依月'}・點長條看明細</span></div>`;
+  const pb=S.buckets[anaState.bucket];
+  if(pb)rev+=`<div class="ana-foot">${pb.label}：營收 ${anaMoney(pb.rev)}・已收 ${anaMoney(pb.recv)}・未收 ${anaMoney(pb.rev-pb.recv)}</div>`;
+  rev+='<div class="ana-h3" style="margin-top:14px">未收款（依服務日期，含尚未付訂金）</div>';
+  rev+=S.unpaid.length?S.unpaid.slice(0,5).map(o=>`<div class="ana-list-item" onclick="openCalDetail(${Number(o.id)})"><span style="color:var(--sub);width:40px">${(+String(o.date).slice(5,7))}/${(+String(o.date).slice(8,10))}</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(o.name)}・${escHtml(svcLabel(o.service))}</span><span style="color:var(--rose-deep)">${anaMoney(calcPend(o))}</span><i class="ti ti-chevron-right" style="color:var(--sub)"></i></div>`).join('')
+    +(S.unpaid.length>5?`<div class="ana-toggle" onclick="navTo('payment')">還有 ${S.unpaid.length-5} 筆 → 收款分頁</div>`:''):'<div class="ana-foot">這段期間沒有未收款</div>';
+  h+=anaSection('營收與收款',rev);
+  // ④ 服務組合
+  const totalRev=S.revenue,totalN=S.count,byRev=anaState.mix==='rev';
+  const mixTabs=`<div style="display:flex;gap:6px"><div class="ftab ${byRev?'on':''}" onclick="anaSetMix('rev')">依營收</div><div class="ftab ${byRev?'':'on'}" onclick="anaSetMix('count')">依單數</div></div>`;
+  const mix=S.mix.map(g=>{
+    const color=ANA_CAT_COLOR[g.cat]||ANA_CAT_COLOR[''];
+    const head=`<div class="ana-cat"><span class="ana-dot" style="background:${color}"></span>${g.cat?escHtml(g.cat)+'類':'未分類'}<span style="color:var(--sub);font-weight:400">・${g.count} 筆・${anaMoney(g.rev)}</span></div>`;
+    const svs=(byRev?g.services.slice().sort((a,b)=>b.rev-a.rev||b.count-a.count):g.services.slice().sort((a,b)=>b.count-a.count||b.rev-a.rev)).map(sv=>{
+      const p=byRev?anaPct(sv.rev,totalRev):anaPct(sv.count,totalN);
+      return anaRow(anaShortSvc(sv.service),p,color,`${p}%・${sv.count} 筆`)+`<div class="ana-sub">客單價 ${anaMoney(sv.count?sv.rev/sv.count:0)}</div>`;
+    }).join('');
+    return head+svs;
+  }).join('');
+  h+=anaSection('服務組合',mix,mixTabs);
+  // ⑤ 檔期熱度
+  let heat='<div class="ana-heat"><div></div>'+ANA_WEEK.map(w=>`<div class="h">${w}</div>`).join('');
+  S.heat.forEach((row,si)=>{
+    heat+=`<div class="s">${ANA_SLOTS[si]}</div>`;
+    row.forEach((c,wi)=>{
+      const bg=anaHeatColor(c.n,S.heatMax)||'var(--viz-track)';
+      const dark=ANA_HEAT_RAMP.indexOf(bg)>=2;
+      heat+=`<div class="c ${anaState.cell===si+'-'+wi?'on':''}" style="background:${bg};color:${dark?'#fff':'var(--text)'}" onclick="anaPickCell(${si},${wi})">${c.n||''}</div>`;
+    });
+  });
+  heat+='</div>';
+  if(anaState.cell){
+    const p=anaState.cell.split('-').map(Number),c=S.heat[p[0]]&&S.heat[p[0]][p[1]];
+    if(c)heat+=`<div class="ana-foot">週${ANA_WEEK[p[1]]}・${ANA_SLOTS[p[0]]}：${c.n} 筆${c.n?'（'+Object.keys(c.svc).sort((x,y)=>c.svc[y]-c.svc[x]).map(k=>escHtml(k)+' '+c.svc[k]).join('、')+'）':''}</div>`;
+  }else heat+='<div class="ana-foot">顏色越深越多單；點格子看明細。上午 &lt;12:00・下午 12:00–17:59・晚上 ≥18:00</div>';
+  h+=anaSection('檔期熱度',heat);
+  // ⑥ 客人輪廓
+  const B=S.bridal;
+  let prof='';
+  if(B.n){
+    prof+=`<div class="ana-h3">新秘類（${B.n} 筆）・風格偏好</div>`;
+    prof+=B.style.map(x=>anaRow(x.k+(x.k==='自然清透感'?'*':''),anaPct(x.n,B.n),'var(--viz-1)',`${anaPct(x.n,B.n)}%（${x.n}/${B.n}）`)).join('');
+    prof+=`<div class="ana-h3">膚質（可複選，合計會超過 100%）</div>`;
+    prof+=B.skin.length?B.skin.map(x=>anaRow(x.k,anaPct(x.n,B.n),'var(--viz-1)',`${x.n} 筆`)).join(''):'<div class="ana-foot">沒有填膚質的訂單</div>';
+    prof+=`<div class="ana-h3">有填過敏成分：${B.allergy}/${B.n}（${anaPct(B.allergy,B.n)}%）</div>`;
+    prof+=`<div class="ana-h3">服務人數</div><div class="ana-chips">${B.people.map(x=>`<span class="ana-chip">${escHtml(x.k)} ${x.n}</span>`).join('')}</div>`;
+    prof+='<div class="ana-foot">* 自然清透感含建單時未修改的預設值</div>';
+  }else prof+='<div class="ana-foot">這段期間沒有新秘類訂單</div>';
+  const T=S.teach;
+  prof+=`<div style="border-top:0.5px solid var(--border-light);margin:14px -16px 12px"></div>`;
+  prof+=`<div class="ana-h3">教學類（${T.n} 筆，其中 ${T.items.length} 筆有填）・最想改善的部位</div>`;
+  if(!focusKeywords.length)prof+='<div class="ana-foot" style="color:var(--amber)">尚未設定教學關鍵字字典（試算表「教學關鍵字」分頁），目前全部列為「其他」</div>';
+  if(T.items.length){
+    const base=T.items.length;
+    prof+=T.labels.map(x=>anaRow(x.k,anaPct(x.n,base),x.k===ANA_OTHER?'var(--viz-other)':'var(--viz-2)',`${x.n} 筆`)).join('');
+    prof+=`<div class="ana-foot">一筆可同時對到多個歸類；長條以有填的 ${base} 筆為分母</div>`;
+    prof+=`<div class="ana-toggle" onclick="anaToggleFocusRaw()">${anaState.showFocusRaw?'▾ 收合原文':'▸ 查看客人原文（'+base+' 則）'}</div>`;
+    if(anaState.showFocusRaw)prof+='<div style="margin-top:6px">'+T.items.map(it=>`<div class="ana-quote"><span>${(+String(it.date).slice(5,7))}/${(+String(it.date).slice(8,10))}・${escHtml(it.labels.join('、'))}</span>${escHtml(it.text)}</div>`).join('')+'</div>';
+  }else prof+=`<div class="ana-foot">${T.n?'這段期間的教學訂單都沒有「最想改善的部位」':'這段期間沒有教學類訂單'}</div>`;
+  prof+='<div class="ana-foot">※ 2026-10-07 起從表單轉成的教學單才有這題；手動建立的教學單沒有</div>';
+  h+=anaSection('客人輪廓',prof);
+  body.innerHTML=h;
+}
+
+// ============================================================
 // ADM-B1：登入／登出／清除本機資料
 // ============================================================
 // 遠端登出後，手機上不可留下任何客戶資料
@@ -3116,6 +3412,7 @@ function wipeLocalData(){
   orders=[];expenses=[];tags=[];clients=[];
   cancelledOrders=[];cancelledExpenses=[];scheduleCfg=null;
   nextOrderId=1;nextExpId=1;nextTagId=15;
+  focusKeywords=[];lastSyncAt='';
   contractUrl='';
   try{ document.querySelectorAll(WIPE_SHEET_SEL).forEach(el=>el.classList.remove('show')); }catch(e){}
   const ov=document.getElementById('addOrderOverlay'); if(ov) ov.style.display='none';
@@ -3352,7 +3649,7 @@ function openContractUrl(){
       showToast('正在更新…');
       const ok=await syncFromCloud();
       renderCalendar();renderPayment();renderClients();
-      renderDashToday();renderDashStats();updateReviewCountBadge();
+      renderDashToday();renderDashStats();updateReviewCountBadge();renderAnalyticsSafe();
       if(ok) showToast('✓ 已更新');
     }
     startY=0; currentY=0;
@@ -3381,6 +3678,7 @@ async function initApp(){
     try { renderDashToday(); } catch(e) { console.warn('renderDashToday:', e); }
     try { renderDashStats(); } catch(e) { console.warn('renderDashStats:', e); }
     try { updateReviewCountBadge(); } catch(e) { console.warn('updateReviewCountBadge:', e); }
+    try { renderAnalytics(); } catch(e) { console.warn('renderAnalytics:', e); }
   }
 
   renderAll();
