@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!-- ============================================================
      Sian 嫻美學 · 後台管理 app（ADM）
-     版本：ADM-B5.2｜Sian-Booking B5.2版      日期：2026-11-02
+     版本：ADM-B7｜Sian-Booking B7版          日期：2026-11-09
      🔴 部署檔名必須改回：index.html
      Repo：Sian-Booking   →   https://sian-booking.vercel.app/
      知識庫：SIAN-ADM_規格.md ／ _資料模型.md ／ _踩坑.md
@@ -408,6 +408,15 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 .ri-q{flex-shrink:0;min-width:84px;color:var(--sub)}
 .ri-a{color:var(--text);word-break:break-word}
 .ri-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+/* ADM-B7：待審核卡片標籤（短答案）＋問卷詳情展開 */
+.ri-chips{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px}
+.ri-chip{font-size:11px;line-height:1.4;padding:3px 9px;border-radius:12px;background:var(--warm);border:0.5px solid var(--line);color:var(--text);word-break:break-all}
+.ri-chip i{font-style:normal;color:var(--sub);margin-right:4px}
+.ri-chip.warn{background:var(--red-light);border-color:var(--unpaid-border);color:var(--red);font-weight:500}
+.ri-chip.warn i{color:var(--red)}
+.ri-more{margin:-2px 0 8px;font-size:12px}
+.ri-more summary{color:var(--rose-deep);cursor:pointer;margin-bottom:4px}
+.ri-more .ri-qa-row{margin:3px 0}
 .ri-btn{padding:10px;border-radius:9px;font-size:13px;font-weight:500;font-family:var(--font-main);cursor:pointer;text-align:center;border:0.5px solid var(--line);background:var(--white);color:var(--text);transition:all 0.15s}
 .ri-btn:hover{background:var(--rose-bg)}
 .ri-btn.primary{background:var(--rose-deep);color:var(--white);border-color:var(--rose-deep)}
@@ -977,6 +986,8 @@ function serviceOptions(current){
 }
 function svcLabel(service){return service||'—';}
 const SKINS=['乾性','油性','混合性','敏感肌','痘痘肌','過敏史'];
+// ADM-B7：表單膚況「不太確定」等不在 SKINS 的值也要看得到、點得掉（不然轉單後變隱形資料）；值來自公開表單 → 跳脫、用 data- 屬性傳
+function skinChips(sel,fn){sel=sel||[];return SKINS.concat(sel.filter(s=>s&&SKINS.indexOf(s)<0)).map(s=>`<div class="chip ${sel.includes(s)?'on':''}" data-skin="${escHtml(s)}" onclick="${fn}(this.dataset.skin)">${escHtml(s)}</div>`).join('');}
 const STYLES=['自然清透感','韓系光澤感','歐美立體感','日系清甜感','復古優雅感'];
 
 // ============================================================
@@ -1778,7 +1789,7 @@ function openEditClientSheet(id){
     <div class="field"><label class="fl">電話</label><input type="tel" id="ecPhone" value="${c.phone||''}" placeholder="0912-345-678"></div>
     <div class="field"><label class="fl">膚質（可複選）</label>
       <div class="chips" id="ecSkinChips">
-        ${SKINS.map(s=>`<div class="chip ${(c.skin||[]).includes(s)?'on':''}" onclick="ecToggleSkin('${s}')">${s}</div>`).join('')}
+        ${skinChips(c.skin,'ecToggleSkin')}
       </div>
     </div>
     <div class="field"><label class="fl">過敏成分</label><input type="text" id="ecAllergy" value="${c.allergy||''}" placeholder="例：含酒精、防腐劑"></div>
@@ -1798,7 +1809,7 @@ function ecToggleSkin(s){
   if(!c.skin)c.skin=[];
   const i=c.skin.indexOf(s);
   i>-1?c.skin.splice(i,1):c.skin.push(s);
-  document.getElementById('ecSkinChips').innerHTML=SKINS.map(sv=>`<div class="chip ${(c.skin||[]).includes(sv)?'on':''}" onclick="ecToggleSkin('${sv}')">${sv}</div>`).join('');
+  document.getElementById('ecSkinChips').innerHTML=skinChips(c.skin,'ecToggleSkin');
 }
 function saveEditClient(){
   const c=clients.find(x=>x.id===editClientId);
@@ -1921,7 +1932,7 @@ function renderAddForm(){
     c.innerHTML=`
       <div class="sec-divider">膚質</div>
       <div class="chips" style="margin-bottom:14px">
-        ${SKINS.map(s=>`<div class="chip ${(addForm.skin||[]).includes(s)?'on':''}" onclick="addToggleSkin('${s}')">${s}</div>`).join('')}
+        ${skinChips(addForm.skin,'addToggleSkin')}
       </div>
       <div class="field"><label class="fl">過敏成分</label><input type="text" placeholder="例：含酒精、防腐劑" value="${addForm.allergy}" oninput="addForm.allergy=this.value"></div>
       <div class="sec-divider">風格偏好</div>
@@ -2731,12 +2742,33 @@ function hideLoadingOverlay(instant){
 // ── 更新待審核清單（從 cloud sync 回來的資料）──
 // ADM-A5：待審核卡片依產品類別顯示專屬問題；表單是公開的 → 所有文字一律跳脫
 const PENDING_CAT_CLASS={'新秘':'bridal','教學':'teach','霧眉':'brow'};
-const PENDING_QA_FIELDS=[['loc','開妝地點'],['venueAddress','宴會地址'],['people','服務人數'],['skin','膚質'],['allergy','過敏成分'],['style','風格偏好'],['topic','體驗課主題'],['focus','最想改善的部位'],['lastBrow','上一次霧眉']];   // ADM-B5：topic＝體驗課主題
-function pendingQA(item){
-  return PENDING_QA_FIELDS.map(([k,q])=>{
-    const v=Array.isArray(item[k])?item[k].join('、'):(item[k]||'');
-    return v?[q,v]:null;
-  }).filter(Boolean);
+// ADM-B7：待審核卡片 —— 長文字（地點、舊表單填空）用列；短答案一律變標籤，一眼看完、手機不拉長
+//   標籤超過 PENDING_CHIP_MAX 字會截斷，「問卷詳情」展開看完整原文；有真的過敏成分 → 紅色標籤
+const PENDING_ROW_FIELDS=[['loc','開妝地點'],['venueAddress','宴會地址'],['focus','最想改善的部位']];
+const PENDING_CHIP_FIELDS=[['people','人數'],['skin','膚況'],['allergy','過敏'],['style','風格'],['topic','主題'],['makeupExp','經驗'],['makeupKit','彩妝品'],['concerns','困擾'],['lastBrow','上次霧眉']];
+const PENDING_DETAIL_LABEL={people:'服務人數',skin:'膚況',allergy:'過敏成分',style:'風格偏好',topic:'體驗課主題',makeupExp:'彩妝經驗',makeupKit:'彩妝品現況',concerns:'想解決的困擾',lastBrow:'上一次霧眉'};
+const PENDING_CHIP_MAX=12;
+function pendingValues(item,k){
+  const v=item[k];
+  if(Array.isArray(v))return v.map(x=>String(x).trim()).filter(Boolean);
+  const s=String(v===null||v===undefined?'':v).trim();
+  if(!s)return [];
+  return k==='concerns'?s.split('、').map(x=>x.trim()).filter(Boolean):[s];
+}
+function pendingCardBody(item){
+  const rows=PENDING_ROW_FIELDS.map(([k,q])=>{const v=String(item[k]||'').trim();return v?`<div class="ri-qa-row"><span class="ri-q">${q}</span><span class="ri-a">${escHtml(v)}</span></div>`:'';}).join('');
+  let cut=false;
+  const chips=[];
+  PENDING_CHIP_FIELDS.forEach(([k,l])=>{
+    pendingValues(item,k).forEach(v=>{
+      const short=v.length>PENDING_CHIP_MAX?v.slice(0,PENDING_CHIP_MAX)+'…':v;
+      if(short!==v)cut=true;
+      const warn=k==='allergy'&&ANA_NO_ALLERGY.indexOf(anaNorm(v))<0;
+      chips.push(`<span class="ri-chip${warn?' warn':''}"><i>${warn?'⚠ ':''}${l}</i>${escHtml(short)}</span>`);
+    });
+  });
+  const detail=cut?`<details class="ri-more"><summary>問卷詳情</summary>${PENDING_CHIP_FIELDS.map(([k])=>{const vs=pendingValues(item,k);return vs.length?`<div class="ri-qa-row"><span class="ri-q">${PENDING_DETAIL_LABEL[k]}</span><span class="ri-a">${escHtml(vs.join('、'))}</span></div>`:'';}).join('')}</details>`:'';
+  return (rows?`<div class="ri-qa">${rows}</div>`:'')+(chips.length?`<div class="ri-chips">${chips.join('')}</div>`:'')+detail;
 }
 function updatePendingList(pendingItems){
   const list=document.getElementById('reviewList');
@@ -2756,7 +2788,6 @@ function updatePendingList(pendingItems){
     const cat=item.category||'';
     const dt=new Date(item.submittedAt);
     const timeAgo=isNaN(dt)?'剛剛':formatTimeAgo(dt);
-    const qa=pendingQA(item);
     const warns=item.warnings||[];
     const conflicts=item.conflicts||[];
     return`<div class="review-item" id="${safeId}">
@@ -2768,7 +2799,7 @@ function updatePendingList(pendingItems){
         <div class="ri-meta"><i class="ti ti-calendar" style="font-size:12px"></i>${escHtml(item.date||'—')}${item.time?' '+escHtml(item.time):''}</div>
         <div class="ri-meta"><i class="ti ti-phone" style="font-size:12px"></i>${escHtml(item.phone||'—')}</div>
       </div>
-      ${qa.length?`<div class="ri-qa">${qa.map(([q,a])=>`<div class="ri-qa-row"><span class="ri-q">${q}</span><span class="ri-a">${escHtml(a)}</span></div>`).join('')}</div>`:''}
+      ${pendingCardBody(item)}
       ${item.note?`<div class="ri-note">${escHtml(item.note).replace(/\n/g,'<br>')}</div>`:''}
       ${warns.length?`<div class="ri-note" style="background:var(--amber-bg);color:var(--amber)">⚠️ ${warns.map(escHtml).join('<br>⚠️ ')}</div>`:''}
       ${conflicts.length?`<div class="ri-note" style="background:var(--red-light);color:var(--red);border:0.5px solid var(--unpaid-border)"><b>⚠️ 行程衝突！</b>（僅提醒，仍可建立訂單）<br>${conflicts.map(escHtml).join('<br>')}</div>`:''}
@@ -2786,6 +2817,9 @@ function updatePendingList(pendingItems){
     // 教學／霧眉的專屬答案在訂單沒有對應欄位 → 放到訂單備註開頭
     const extra=[];
     if(item.topic)extra.push('【體驗課主題】'+item.topic);   // ADM-B5：表單「體驗課主題」的答案（選項由表單決定，前端不寫死）
+    // ADM-B7：全妝課問卷濃縮成一行（戰情分析從這行讀）；膚質、過敏另外帶進訂單欄位，不放備註
+    const survey=[['經驗',item.makeupExp],['彩妝品',item.makeupKit],['困擾',item.concerns]].filter(x=>x[1]).map(x=>x[0]+'：'+x[1]);
+    if(survey.length)extra.push('【全妝課問卷】'+survey.join('｜'));
     if(item.focus)extra.push('【最想改善的部位】'+item.focus);
     if(item.lastBrow)extra.push('【上一次霧眉】'+item.lastBrow);
     reviewData[safeId]={
@@ -3128,7 +3162,7 @@ const ANA_SLOTS=['上午','下午','晚上','整天／未填時間'];
 const ANA_WEEK=['一','二','三','四','五','六','日'];
 const ANA_NO_ALLERGY=['無','沒有','无','none','no','-','—','無過敏','沒有過敏'];
 const ANA_OTHER='其他';
-let anaState={preset:'month',from:'',to:'',mix:'rev',showFocusRaw:false,cell:'',bucket:-1};
+let anaState={preset:'month',from:'',to:'',mix:'rev',showFocusRaw:false,showSurveyOther:false,cell:'',bucket:-1};
 
 function anaPad(n){return String(n).padStart(2,'0');}
 // 月份從 1 起算；日可以是 0（＝上個月最後一天）或超過當月天數（自動進位）
@@ -3146,6 +3180,42 @@ function anaRange(preset,today,from,to){
   return {from:anaYmd(y,m,1),to:anaYmd(y,m+1,0)};
 }
 function anaFocusText(note){const m=String(note||'').match(/【最想改善的部位】([^\n]*)/);return m?m[1].trim():'';}
+// ADM-B7：全妝課問卷（結構化選項）—— 選項清單只用來把「其他」自填答案歸類
+//   表單改選項文字要同步改這裡；沒同步也不會遺失資料，只是那個選項會被算進「其他」
+const ANA_SURVEY=[
+  {key:'concerns',title:'想解決的困擾',multi:true,options:['底妝斑駁暗沉','眉毛不會畫與修剪','眼影畫髒與眼型調整','輪廓打亮與修容','找尋適合的妝容風格']},
+  {key:'exp',title:'彩妝經驗',multi:false,options:['完全零基礎','偶爾化妝但易脫妝','會畫底妝但不會眼眉']},
+  {key:'kit',title:'彩妝品現況',multi:false,options:['幾乎沒有','有買但不知道怎麼用']}
+];
+// 訂單備註 → 問卷答案。讀兩種寫法：轉單時的一行「【全妝課問卷】經驗：…｜彩妝品：…｜困擾：…」，
+//   以及待審核分頁還沒補欄時 GS 併進備註的「【彩妝經驗】…」「【彩妝品現況】…」「【想解決的困擾】…」
+function anaSurvey(note){
+  const s=String(note||'');
+  const line=(s.match(/【全妝課問卷】([^\n]*)/)||[])[1]||'';
+  const part=k=>{const m=line.match(new RegExp(k+'：([^｜\\n]*)'));return m?m[1].trim():'';};
+  const tag=l=>{const m=s.match(new RegExp('【'+l+'】([^\\n]*)'));return m?m[1].trim():'';};
+  const c=part('困擾')||tag('想解決的困擾');
+  return {exp:part('經驗')||tag('彩妝經驗'),kit:part('彩妝品')||tag('彩妝品現況'),concerns:c?c.split('、').map(x=>x.trim()).filter(Boolean):[]};
+}
+function anaSurveyStats(teach){
+  const surveyed=[];
+  teach.forEach(o=>{const sv=anaSurvey(o.note);if(sv.exp||sv.kit||sv.concerns.length)surveyed.push({id:o.id,date:o.date,exp:sv.exp,kit:sv.kit,concerns:sv.concerns});});
+  return {n:surveyed.length,q:ANA_SURVEY.map(q=>{
+    const cnt={};q.options.forEach(op=>{cnt[op]=0;});
+    const other=[];let base=0,otherN=0;
+    surveyed.forEach(it=>{
+      const vals=q.key==='concerns'?it.concerns:(it[q.key]?[it[q.key]]:[]);
+      if(!vals.length)return;
+      base++;
+      let isOther=false;
+      vals.forEach(v=>{const hit=q.options.find(op=>anaNorm(op)===anaNorm(v));if(hit)cnt[hit]++;else{isOther=true;other.push({date:it.date,text:v});}});
+      if(isOther)otherN++;
+    });
+    const rows=q.options.map(op=>({k:op,n:cnt[op]})).sort((a,b)=>b.n-a.n||q.options.indexOf(a.k)-q.options.indexOf(b.k));
+    if(otherN)rows.push({k:ANA_OTHER,n:otherN});
+    return {key:q.key,title:q.title,multi:q.multi,base:base,rows:rows,other:other};
+  })};
+}
 function anaNorm(s){s=String(s===null||s===undefined?'':s);return (s.normalize?s.normalize('NFKC'):s).toLowerCase().trim();}
 // 一段原文可以同時對到多個歸類；都對不到回傳空陣列（由呼叫端歸到「其他」）
 function anaClassify(text,dict){
@@ -3236,6 +3306,7 @@ function anaCompute(list,exps,r,dict){
   items.forEach(it=>it.labels.forEach(l=>{lc[l]=(lc[l]||0)+1;}));
   const order=Object.keys(lc).filter(k=>k!==ANA_OTHER);
   S.teach={n:teach.length,items:items,labels:order.map(k=>({k:k,n:lc[k]})).filter(x=>x.n>0).sort((a,b)=>b.n-a.n||order.indexOf(a.k)-order.indexOf(b.k)).concat(lc[ANA_OTHER]?[{k:ANA_OTHER,n:lc[ANA_OTHER]}]:[])};
+  S.teach.survey=anaSurveyStats(teach);   // ADM-B7：全妝課問卷
   return S;
 }
 
@@ -3259,6 +3330,7 @@ function anaSetPreset(p){
 function anaSetCustom(){anaState.from=document.getElementById('anaFrom').value;anaState.to=document.getElementById('anaTo').value;anaState.cell='';anaState.bucket=-1;renderAnalytics();}
 function anaSetMix(m){anaState.mix=m;renderAnalytics();}
 function anaToggleFocusRaw(){anaState.showFocusRaw=!anaState.showFocusRaw;renderAnalytics();}
+function anaToggleSurveyOther(){anaState.showSurveyOther=!anaState.showSurveyOther;renderAnalytics();}
 function anaPickCell(s,w){const k=s+'-'+w;anaState.cell=anaState.cell===k?'':k;renderAnalytics();}
 function anaPickBucket(i){anaState.bucket=anaState.bucket===i?-1:i;renderAnalytics();}
 
@@ -3335,18 +3407,34 @@ function renderAnalytics(){
     prof+=`<div class="ana-h3">服務人數</div><div class="ana-chips">${B.people.map(x=>`<span class="ana-chip">${escHtml(x.k)} ${x.n}</span>`).join('')}</div>`;
     prof+='<div class="ana-foot">* 自然清透感含建單時未修改的預設值</div>';
   }else prof+='<div class="ana-foot">這段期間沒有新秘類訂單</div>';
-  const T=S.teach;
+  const T=S.teach,SV=T.survey;
   prof+=`<div style="border-top:0.5px solid var(--border-light);margin:14px -16px 12px"></div>`;
-  prof+=`<div class="ana-h3">教學類（${T.n} 筆，其中 ${T.items.length} 筆有填）・最想改善的部位</div>`;
-  if(!focusKeywords.length)prof+='<div class="ana-foot" style="color:var(--amber)">尚未設定教學關鍵字字典（試算表「教學關鍵字」分頁），目前全部列為「其他」</div>';
+  prof+=`<div class="ana-h3">教學類（${T.n} 筆）</div>`;
+  // ADM-B7：全妝課問卷（勾選題，直接統計選項）
+  if(SV.n){
+    SV.q.forEach(q=>{
+      if(!q.base)return;
+      prof+=`<div class="ana-h3">${escHtml(q.title)}（${q.base} 筆${q.multi?'，可複選':''}）</div>`;
+      prof+=q.rows.map(x=>anaRow(x.k,anaPct(x.n,q.base),x.k===ANA_OTHER?'var(--viz-other)':'var(--viz-2)',`${anaPct(x.n,q.base)}%・${x.n} 筆`)).join('');
+      if(q.other.length){
+        prof+=`<div class="ana-toggle" onclick="anaToggleSurveyOther()">${anaState.showSurveyOther?'▾ 收合「其他」':'▸ 查看「其他」自填（'+q.other.length+' 則）'}</div>`;
+        if(anaState.showSurveyOther)prof+='<div style="margin-top:6px">'+q.other.map(it=>`<div class="ana-quote"><span>${(+String(it.date).slice(5,7))}/${(+String(it.date).slice(8,10))}</span>${escHtml(it.text)}</div>`).join('')+'</div>';
+      }
+    });
+    prof+=`<div class="ana-foot">「想解決的困擾」可複選，合計會超過 100%；以有填的筆數為分母</div>`;
+  }
+  // 舊表單：「最想改善的部位」填空（試算表字典歸類）—— 只在這段期間有資料時顯示
   if(T.items.length){
     const base=T.items.length;
+    prof+=`<div class="ana-h3">最想改善的部位（舊表單填空，${base} 筆）</div>`;
+    if(!focusKeywords.length)prof+='<div class="ana-foot" style="color:var(--amber)">尚未設定教學關鍵字字典（試算表「教學關鍵字」分頁），目前全部列為「其他」</div>';
     prof+=T.labels.map(x=>anaRow(x.k,anaPct(x.n,base),x.k===ANA_OTHER?'var(--viz-other)':'var(--viz-2)',`${x.n} 筆`)).join('');
     prof+=`<div class="ana-foot">一筆可同時對到多個歸類；長條以有填的 ${base} 筆為分母</div>`;
     prof+=`<div class="ana-toggle" onclick="anaToggleFocusRaw()">${anaState.showFocusRaw?'▾ 收合原文':'▸ 查看客人原文（'+base+' 則）'}</div>`;
     if(anaState.showFocusRaw)prof+='<div style="margin-top:6px">'+T.items.map(it=>`<div class="ana-quote"><span>${(+String(it.date).slice(5,7))}/${(+String(it.date).slice(8,10))}・${escHtml(it.labels.join('、'))}</span>${escHtml(it.text)}</div>`).join('')+'</div>';
-  }else prof+=`<div class="ana-foot">${T.n?'這段期間的教學訂單都沒有「最想改善的部位」':'這段期間沒有教學類訂單'}</div>`;
-  prof+='<div class="ana-foot">※ 2026-10-07 起從表單轉成的教學單才有這題；手動建立的教學單沒有</div>';
+  }
+  if(!SV.n&&!T.items.length)prof+=`<div class="ana-foot">${T.n?'這段期間的教學訂單沒有問卷資料':'這段期間沒有教學類訂單'}</div>`;
+  prof+='<div class="ana-foot">※ 2026-11 起全妝課改用勾選問卷（困擾、經驗、彩妝品）；之前從表單轉成的教學單是「最想改善的部位」填空；手動建立的教學單沒有問卷</div>';
   h+=anaSection('客人輪廓',prof);
   body.innerHTML=h;
 }
