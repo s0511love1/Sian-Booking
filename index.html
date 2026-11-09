@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!-- ============================================================
      Sian 嫻美學 · 後台管理 app（ADM）
-     版本：ADM-B7｜Sian-Booking B7版          日期：2026-11-09
+     版本：ADM-B7.1｜Sian-Booking B7.1版          日期：2026-11-09
      🔴 部署檔名必須改回：index.html
      Repo：Sian-Booking   →   https://sian-booking.vercel.app/
      知識庫：SIAN-ADM_規格.md ／ _資料模型.md ／ _踩坑.md
@@ -985,7 +985,7 @@ function serviceOptions(current){
   return (current&&SERVICES.indexOf(current)<0?[current]:[]).concat(SERVICES);
 }
 function svcLabel(service){return service||'—';}
-const SKINS=['乾性','油性','混合性','敏感肌','痘痘肌','過敏史'];
+const SKINS=['乾性','油性','混合性','敏感肌','痘痘肌'];   // ADM-B7.1：拿掉「過敏史」（過敏改看過敏成分欄＋紅色標籤）；舊資料的「過敏史」由 skinChips 補成可點掉的標籤
 // ADM-B7：表單膚況「不太確定」等不在 SKINS 的值也要看得到、點得掉（不然轉單後變隱形資料）；值來自公開表單 → 跳脫、用 data- 屬性傳
 function skinChips(sel,fn){sel=sel||[];return SKINS.concat(sel.filter(s=>s&&SKINS.indexOf(s)<0)).map(s=>`<div class="chip ${sel.includes(s)?'on':''}" data-skin="${escHtml(s)}" onclick="${fn}(this.dataset.skin)">${escHtml(s)}</div>`).join('');}
 const STYLES=['自然清透感','韓系光澤感','歐美立體感','日系清甜感','復古優雅感'];
@@ -1911,7 +1911,7 @@ function renderAddForm(){
           <div class="field"><label class="fl">日期 <span class="req">*</span></label><input type="date" value="${b.date}" onchange="updateBlock(${i},'date',this.value)"></div>
           <div class="field"><label class="fl">時間</label><input type="time" value="${b.time||''}" onchange="updateBlock(${i},'time',this.value)"></div>
         </div>
-        <div class="field"><label class="fl">開妝地點 <span class="req">*</span></label><input type="text" placeholder="飯店或場地名稱" value="${b.loc}" oninput="updateBlock(${i},'loc',this.value)"></div>
+        <div class="field"><label class="fl">開妝地點 ${addLocOptional(b.service)?'<span style="font-weight:400;color:var(--sub)">（選填）</span>':'<span class="req">*</span>'}</label><input type="text" placeholder="${addLocOptional(b.service)?'空白＝在工作室':'飯店或場地名稱'}" value="${escHtml(b.loc)}" oninput="updateBlock(${i},'loc',this.value)"></div>
       <div class="field"><label class="fl">宴客地址</label><input type="text" placeholder="宴客場地完整地址" value="${b.venueAddress||''}" oninput="updateBlock(${i},'venueAddress',this.value)"></div>
         <div class="field"><label class="fl">服務人數</label>
           <input type="text" placeholder="例：新娘＋媽媽（2 人）" value="${b.people||''}" oninput="updateBlock(${i},'people',this.value)">
@@ -1998,7 +1998,7 @@ function addNextStep(){
       const b=addForm.serviceBlocks[i];
       if(!b.service){alert(`服務項目 ${i+1}：請選擇服務類型`);return;}
       if(!b.date){alert(`服務項目 ${i+1}：請選擇日期`);return;}
-      if(!b.loc){alert(`服務項目 ${i+1}：請填寫地點`);return;}
+      if(!b.loc&&!addLocOptional(b.service)){alert(`服務項目 ${i+1}：請填寫地點`);return;}
       if(!isFullDayService(b.service)&&!b.time){alert(`服務項目 ${i+1}：「${b.service}」請填寫開始時間（用於檔期計算）`);return;}
     }
   }
@@ -2009,7 +2009,18 @@ function addPrevStep(){if(addStep>1){releaseConflictLock();addStep--;renderAddSt
 function addToggleSkin(s){const i=addForm.skin.indexOf(s);i>-1?addForm.skin.splice(i,1):addForm.skin.push(s);renderAddForm();}
 
 // Service block management for Step 2
-function updateBlock(i,key,val){addForm.serviceBlocks[i][key]=val;}
+function updateBlock(i,key,val){
+  const b=addForm.serviceBlocks[i];
+  b[key]=val;
+  // ADM-B7.1：換服務時重畫（開妝地點必填與否跟著服務）；人數預設「僅新娘」只留給新秘類
+  if(key==='service'){
+    if(addLocOptional(val)){if(b.people==='僅新娘')b.people='';}
+    else if(!b.people&&serviceCategoryOf(val)==='新秘')b.people='僅新娘';
+    renderAddForm();
+  }
+}
+// ADM-B7.1：解除新秘本位 —— 開妝地點只有新秘類必填；教學、霧眉選填（空白＝在工作室，不自動填字）
+function addLocOptional(service){const c=serviceCategoryOf(service);return c==='教學'||c==='霧眉';}
 function addServiceBlock(){
   addForm.serviceBlocks.push({service:'',date:'',time:'06:00',loc:'',venueAddress:'',people:'僅新娘',peopleNote:'',total:'',deposit:''});
   renderAddForm();
@@ -2750,10 +2761,10 @@ const PENDING_DETAIL_LABEL={people:'服務人數',skin:'膚況',allergy:'過敏�
 const PENDING_CHIP_MAX=12;
 function pendingValues(item,k){
   const v=item[k];
-  if(Array.isArray(v))return v.map(x=>String(x).trim()).filter(Boolean);
+  if(Array.isArray(v))return k==='concerns'?anaMergeOther(v,'concerns'):v.map(x=>String(x).trim()).filter(Boolean);
   const s=String(v===null||v===undefined?'':v).trim();
   if(!s)return [];
-  return k==='concerns'?s.split('、').map(x=>x.trim()).filter(Boolean):[s];
+  return k==='concerns'?anaMergeOther(s.split('、'),'concerns'):[s];
 }
 function pendingCardBody(item){
   const rows=PENDING_ROW_FIELDS.map(([k,q])=>{const v=String(item[k]||'').trim();return v?`<div class="ri-qa-row"><span class="ri-q">${q}</span><span class="ri-a">${escHtml(v)}</span></div>`:'';}).join('');
@@ -2818,7 +2829,7 @@ function updatePendingList(pendingItems){
     const extra=[];
     if(item.topic)extra.push('【體驗課主題】'+item.topic);   // ADM-B5：表單「體驗課主題」的答案（選項由表單決定，前端不寫死）
     // ADM-B7：全妝課問卷濃縮成一行（戰情分析從這行讀）；膚質、過敏另外帶進訂單欄位，不放備註
-    const survey=[['經驗',item.makeupExp],['彩妝品',item.makeupKit],['困擾',item.concerns]].filter(x=>x[1]).map(x=>x[0]+'：'+x[1]);
+    const survey=[['經驗',item.makeupExp],['彩妝品',item.makeupKit],['困擾',item.concerns]].filter(x=>x[1]).map(x=>x[0]+'：'+String(x[1]).replace(/[｜\r\n]+/g,'／'));   // ADM-B7.1：「其他」自填裡的｜換成／，不切壞這一行
     if(survey.length)extra.push('【全妝課問卷】'+survey.join('｜'));
     if(item.focus)extra.push('【最想改善的部位】'+item.focus);
     if(item.lastBrow)extra.push('【上一次霧眉】'+item.lastBrow);
@@ -3192,10 +3203,20 @@ const ANA_SURVEY=[
 function anaSurvey(note){
   const s=String(note||'');
   const line=(s.match(/【全妝課問卷】([^\n]*)/)||[])[1]||'';
-  const part=k=>{const m=line.match(new RegExp(k+'：([^｜\\n]*)'));return m?m[1].trim():'';};
+  // ADM-B7.1：依「｜」切段，段首是「經驗：」「彩妝品：」「困擾：」才開新欄位；客人自填裡的「：」「｜」併回前一段，不會切壞
+  const seg={};let cur='';
+  line.split('｜').forEach(p=>{const m=p.match(/^\s*(經驗|彩妝品|困擾)：([\s\S]*)$/);if(m&&!(m[1] in seg)){cur=m[1];seg[cur]=m[2];}else if(cur)seg[cur]+='｜'+p;});
+  const part=k=>(seg[k]||'').trim();
   const tag=l=>{const m=s.match(new RegExp('【'+l+'】([^\\n]*)'));return m?m[1].trim():'';};
   const c=part('困擾')||tag('想解決的困擾');
   return {exp:part('經驗')||tag('彩妝經驗'),kit:part('彩妝品')||tag('彩妝品現況'),concerns:c?c.split('、').map(x=>x.trim()).filter(Boolean):[]};
+}
+// ADM-B7.1：「其他」自填若含頓號或逗號，會被拆成好幾段 → 不在選項清單的段落依原順序併回一段，放在最後
+function anaMergeOther(list,key){
+  const q=ANA_SURVEY.find(x=>x.key===key);const opts=q?q.options:[];
+  const known=[],unk=[];
+  (list||[]).map(x=>String(x===null||x===undefined?'':x).trim()).filter(Boolean).forEach(x=>(opts.some(op=>anaNorm(op)===anaNorm(x))?known:unk).push(x));
+  return unk.length?known.concat(unk.join('、')):known;
 }
 function anaSurveyStats(teach){
   const surveyed=[];
@@ -3207,9 +3228,9 @@ function anaSurveyStats(teach){
       const vals=q.key==='concerns'?it.concerns:(it[q.key]?[it[q.key]]:[]);
       if(!vals.length)return;
       base++;
-      let isOther=false;
-      vals.forEach(v=>{const hit=q.options.find(op=>anaNorm(op)===anaNorm(v));if(hit)cnt[hit]++;else{isOther=true;other.push({date:it.date,text:v});}});
-      if(isOther)otherN++;
+      const unk=[];
+      vals.forEach(v=>{const hit=q.options.find(op=>anaNorm(op)===anaNorm(v));if(hit)cnt[hit]++;else unk.push(v);});
+      if(unk.length){otherN++;other.push({date:it.date,text:unk.join('、')});}   // ADM-B7.1：自填被逗號／頓號拆開的片段併回一則
     });
     const rows=q.options.map(op=>({k:op,n:cnt[op]})).sort((a,b)=>b.n-a.n||q.options.indexOf(a.k)-q.options.indexOf(b.k));
     if(otherN)rows.push({k:ANA_OTHER,n:otherN});
