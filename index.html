@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!-- ============================================================
      Sian 嫻美學 · 後台管理 app（ADM）
-     版本：ADM-B7.1｜Sian-Booking B7.1版          日期：2026-11-09
+     版本：ADM-B8｜Sian-Booking B8版          日期：2026-11-09
      🔴 部署檔名必須改回：index.html
      Repo：Sian-Booking   →   https://sian-booking.vercel.app/
      知識庫：SIAN-ADM_規格.md ／ _資料模型.md ／ _踩坑.md
@@ -417,6 +417,33 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 .ri-more{margin:-2px 0 8px;font-size:12px}
 .ri-more summary{color:var(--rose-deep);cursor:pointer;margin-bottom:4px}
 .ri-more .ri-qa-row{margin:3px 0}
+/* ADM-B8：課後關懷卡片、複訓方案 */
+.care-card{background:var(--white);border:0.5px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px;cursor:pointer}
+.care-card.open{border-color:var(--rose)}
+.care-top{display:flex;justify-content:space-between;align-items:center}
+.care-name{font-size:15px;font-weight:500;color:var(--text)}
+.care-days{font-size:12px;color:var(--rose-deep);background:var(--rose-bg);border-radius:10px;padding:2px 8px}
+.care-meta{font-size:12px;color:var(--sub);margin-top:3px}
+.care-dir{font-size:13px;color:var(--text);margin-top:6px;line-height:1.5;white-space:pre-wrap}
+.care-detail{margin-top:10px;border-top:0.5px solid var(--border-light);padding-top:8px;cursor:default}
+.care-sec{font-size:11px;letter-spacing:0.08em;color:var(--rose);margin:10px 0 4px}
+.care-line,.care-note{font-size:13px;color:var(--text);line-height:1.6;white-space:pre-wrap}
+.care-line b,.care-note b{font-weight:500;color:var(--sub);margin-right:6px}
+.care-note{background:var(--rose-bg);border-radius:8px;padding:6px 10px;margin-bottom:6px}
+.care-ta{width:100%;box-sizing:border-box;min-height:64px;border:0.5px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13px;font-family:inherit;line-height:1.6;background:var(--warm)}
+.care-btn{text-align:center;padding:9px;border-radius:9px;background:var(--rose-deep);color:#fff;font-size:13px;margin-top:8px;cursor:pointer}
+.care-btn.ghost{background:transparent;color:var(--rose-deep);border:0.5px solid var(--rose)}
+.care-btn.primary{background:var(--rose-deep)}
+.care-btn.off{opacity:.4;pointer-events:none}
+.care-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.care-warn{font-size:12px;color:var(--amber);background:var(--amber-bg);border-radius:8px;padding:8px 10px;margin:8px 0;line-height:1.6}
+.care-sum-row{display:flex;justify-content:space-between;font-size:13px;padding:4px 0;border-top:0.5px solid var(--border-light)}
+.care-sum-row span:last-child{color:var(--sub);font-size:12px}
+.plan-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:6px}
+.plan-card{border:0.5px solid var(--line);border-radius:12px;padding:12px;text-align:center;background:var(--white);cursor:pointer}
+.plan-card.on{border:1.5px solid var(--rose-deep);background:var(--rose-bg)}
+.plan-h{font-size:15px;font-weight:500;color:var(--text)}
+.plan-p{font-size:13px;color:var(--rose-deep);margin-top:4px}
 .ri-btn{padding:10px;border-radius:9px;font-size:13px;font-weight:500;font-family:var(--font-main);cursor:pointer;text-align:center;border:0.5px solid var(--line);background:var(--white);color:var(--text);transition:all 0.15s}
 .ri-btn:hover{background:var(--rose-bg)}
 .ri-btn.primary{background:var(--rose-deep);color:var(--white);border-color:var(--rose-deep)}
@@ -604,6 +631,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
           <div class="bar-leg"><span id="dashIncomePct">已收 0%</span><span id="dashIncomeRemain">待收 NT$ 0</span></div>
         </div>
       </div>
+      <div id="careSummary"></div><!-- ADM-B8：課後關懷摘要（沒有待關懷時不顯示） -->
       <!-- ADM-B4：戰情分析（期間篩選＋各項圖表直接放在首頁） -->
       <div class="dash-section">
         <div class="sec-head"><div class="sec-title">戰情分析</div><div class="ana-sync" id="anaSync"></div></div>
@@ -696,7 +724,11 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
         <input class="search-input" type="text" placeholder="搜尋客戶姓名…" oninput="filterClients(this.value)" id="clientSearchInput">
       </div>
     </div>
-    <div class="pay-filter-tabs" id="clientFilterTabs">
+    <div class="pay-filter-tabs" id="clientModeTabs"><!-- ADM-B8：待關懷｜全部客戶 -->
+      <div class="ftab on" data-mode="care" onclick="setClientMode('care')">🎓 待關懷</div>
+      <div class="ftab" data-mode="all" onclick="setClientMode('all')">全部客戶</div>
+    </div>
+    <div class="pay-filter-tabs" id="clientFilterTabs" style="display:none">
       <div class="ftab on" onclick="setClientFilter(this,'all')">全部</div>
       <div class="ftab" onclick="setClientFilter(this,'repeat')">回頭客</div>
       <div class="ftab" onclick="setClientFilter(this,'allergy')">過敏注意</div>
@@ -973,13 +1005,14 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 </div><!-- #app -->
 
 <script>
+// ADM-B7.2：鐵律 15 全面落實 —— 訂單、客戶、待審核來的文字（多半來自公開表單）一律 escHtml 後才放進 innerHTML／value／textarea
 // ============================================================
 // DATA
 // ============================================================
 const PAY_LABEL={unpaid:'未付款',deposit:'已付訂金',paid:'已付清'};
 // 🔴 服務清單同源（磁片 B-1）：GS「佔用時長」分頁、Google 表單、官網文案、合約書 H14 要一起改
 // ADM-A4：彩妝教學拆成全妝課／體驗課；舊名「彩妝教學」只出現在既有訂單，不再供新單選擇
-const SERVICES=['新娘秘書','新娘試妝','活動梳化','彩妝教學-全妝課 (3.5小時)','彩妝教學-體驗課 (1小時)','婚紗拍攝造型','精緻柔霧眉設計'];
+const SERVICES=['新娘秘書','新娘試妝','活動梳化','彩妝教學-全妝課 (3.5小時)','彩妝教學-體驗課 (1小時)','婚紗拍攝造型','精緻柔霧眉設計','彩妝教學-複訓 (1小時)','彩妝教學-複訓 (2小時)'];   // ADM-B8：複訓（不上官網）
 // 下拉選單：目前值不在清單內（舊服務名）時保留在最前面，避免一打開編輯就被靜默改成第一個選項
 function serviceOptions(current){
   return (current&&SERVICES.indexOf(current)<0?[current]:[]).concat(SERVICES);
@@ -1108,6 +1141,8 @@ function confirmReview(elId, pendingId){
     };
   }
 
+  (addForm.serviceBlocks||[]).forEach(applyAutoPrice);   // ADM-B8：轉單時帶入標準價
+  addForm.mode='normal';addForm.retrain=null;addForm.plan='';
   // 重置表單狀態
   addStep=1;
   isSubmittingOrder=false;
@@ -1254,8 +1289,8 @@ function renderDashStats(){
         ?'<span class="badge badge-done">已完成</span>'
         :'<span class="badge badge-confirmed">已確認</span>';
       return`<div class="order-row" onclick="dashOpenDetail(${o.id})">
-        <div class="order-av">${o.name[0]}</div>
-        <div class="order-info"><div class="order-name">${o.name}</div><div class="order-meta">${dateStr} · ${svcLabel(o.service)} · ${o.loc}</div></div>
+        <div class="order-av">${escHtml(o.name[0])}</div>
+        <div class="order-info"><div class="order-name">${escHtml(o.name)}</div><div class="order-meta">${dateStr} · ${escHtml(svcLabel(o.service))} · ${escHtml(o.loc)}</div></div>
         ${statusBadge}
       </div>`;
     }).join('');
@@ -1266,7 +1301,7 @@ function renderDashToday(){
   const today=new Date();
   const ds=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
   const todayOrders=orders.filter(o=>o.date===ds).sort((a,b)=>a.time.localeCompare(b.time));
-  const COLOR={'新娘秘書':'','新娘試妝':'m','活動梳化':'g','彩妝教學':'g','彩妝教學-全妝課 (3.5小時)':'g','彩妝教學-體驗課 (1小時)':'g','婚紗拍攝造型':'','精緻柔霧眉設計':'amber'};
+  const COLOR={'新娘秘書':'','新娘試妝':'m','活動梳化':'g','彩妝教學':'g','彩妝教學-全妝課 (3.5小時)':'g','彩妝教學-體驗課 (1小時)':'g','婚紗拍攝造型':'','精緻柔霧眉設計':'amber','彩妝教學-複訓 (1小時)':'g','彩妝教學-複訓 (2小時)':'g'};
   const el=document.getElementById('dashTodayList');
   if(!el)return;
   if(!todayOrders.length){
@@ -1275,10 +1310,10 @@ function renderDashToday(){
   }
   el.innerHTML=todayOrders.map(o=>`
     <div class="sched-item" onclick="dashOpenDetail(${o.id})" style="cursor:pointer">
-      <div class="sched-time">${o.time}</div>
+      <div class="sched-time">${escHtml(o.time)}</div>
       <div class="sched-card ${COLOR[o.service]||''}">
-        <div class="sched-name">${o.name} · ${svcLabel(o.service)}</div>
-        <div class="sched-detail">${o.loc}${o.skin&&o.skin.length?' · '+o.skin.join('/'):''}${o.allergy?' ⚠️ '+o.allergy:''}</div>
+        <div class="sched-name">${escHtml(o.name)} · ${escHtml(svcLabel(o.service))}</div>
+        <div class="sched-detail">${escHtml(o.loc)}${escHtml(o.skin&&o.skin.length?' · '+o.skin.join('/'):'')}${escHtml(o.allergy?' ⚠️ '+o.allergy:'')}</div>
         ${o.status==='done'?'<div style="font-size:10px;color:var(--sage);margin-top:3px;font-weight:500">✓ 已完成</div>':''}
       </div>
     </div>`).join('');
@@ -1347,16 +1382,16 @@ function renderDayDetail(ds){
   if(!dt.length){detail.innerHTML=`<div class="detail-head">${label}</div>${blockPanelHtml(ds)}<div class="empty-day"><i class="ti ti-calendar-off" style="font-size:28px;display:block;margin-bottom:8px;color:var(--line)"></i>這天沒有排程<br><span style="font-size:12px">點右上角新增訂單</span></div>`;return;}
   detail.innerHTML=`<div class="detail-head">${label}・${dt.length} 筆</div>`+blockPanelHtml(ds)+dt.map(t=>`
     <div class="tcard ${t.pay}">
-      <div class="tcard-top"><div><div class="tcard-name">${t.name}</div><div class="tcard-svc">${svcLabel(t.service)}</div></div><span class="badge badge-${t.pay}">${PAY_LABEL[t.pay]}</span></div>
+      <div class="tcard-top"><div><div class="tcard-name">${escHtml(t.name)}</div><div class="tcard-svc">${escHtml(svcLabel(t.service))}</div></div><span class="badge badge-${t.pay}">${PAY_LABEL[t.pay]}</span></div>
       <div class="tcard-meta">
-        ${t.time?`<div class="tmeta"><i class="ti ti-clock" style="font-size:12px"></i>${t.time}</div>`:''}
+        ${t.time?`<div class="tmeta"><i class="ti ti-clock" style="font-size:12px"></i>${escHtml(t.time)}</div>`:''}
 
-        <div class="tmeta"><i class="ti ti-map-pin" style="font-size:12px"></i>${t.loc}</div>
-        ${t.venueAddress?`<div class="tmeta"><i class="ti ti-building" style="font-size:12px"></i>${t.venueAddress}</div>`:''}
-        ${t.people?`<div class="tmeta"><i class="ti ti-users" style="font-size:12px"></i>${t.people}</div>`:''}
+        <div class="tmeta"><i class="ti ti-map-pin" style="font-size:12px"></i>${escHtml(t.loc)}</div>
+        ${t.venueAddress?`<div class="tmeta"><i class="ti ti-building" style="font-size:12px"></i>${escHtml(t.venueAddress)}</div>`:''}
+        ${t.people?`<div class="tmeta"><i class="ti ti-users" style="font-size:12px"></i>${escHtml(t.people)}</div>`:''}
         ${t.peopleNote?`<div class="tmeta" style="color:var(--rose-deep)"><i class="ti ti-receipt-2" style="font-size:12px"></i>加購備注</div>`:''}
       </div>
-      ${(t.skin&&t.skin.length)||t.note?`<div class="tcard-note">${[...(t.skin||[]),t.note].filter(Boolean).join('・')}</div>`:''}
+      ${(t.skin&&t.skin.length)||t.note?`<div class="tcard-note">${escHtml([...(t.skin||[]),t.note].filter(Boolean).join('・'))}</div>`:''}
       <div class="tcard-actions">
         <div class="tact" onclick="openCalDetail(${t.id})"><i class="ti ti-receipt" style="margin-right:3px"></i>訂單細節</div>
         ${t.status==='done'
@@ -1379,17 +1414,17 @@ function openCalDetail(id){
   const detPend=t.pay==='paid'?0:t.pay==='deposit'?t.final_amt-t.deposit_amt:t.final_amt;
   const siblings=orders.filter(o=>o.bookingId&&o.bookingId===t.bookingId&&o.id!==t.id);
   document.getElementById('calDetailBody').innerHTML=`
-    ${siblings.length?`<div style="background:var(--rose-bg);border-radius:8px;padding:9px 12px;margin-bottom:12px;font-size:12px;color:var(--rose-deep)"><i class="ti ti-link" style="margin-right:5px"></i>同次預約還有：${siblings.map(s=>s.service+'（'+s.date+'）').join('、')}</div>`:''}
+    ${siblings.length?`<div style="background:var(--rose-bg);border-radius:8px;padding:9px 12px;margin-bottom:12px;font-size:12px;color:var(--rose-deep)"><i class="ti ti-link" style="margin-right:5px"></i>同次預約還有：${escHtml(siblings.map(s=>s.service+'（'+s.date+'）').join('、'))}</div>`:''}
     ${t.clientId?`<div class="srow"><span class="skey">客戶編號</span><span class="sval" style="font-family:var(--font-en);letter-spacing:0.1em;color:var(--rose-deep)">${t.clientId}</span></div>`:''}
-    <div class="srow"><span class="skey">服務</span><span class="sval">${svcLabel(t.service)}</span></div>
-    <div class="srow"><span class="skey">日期</span><span class="sval">${t.date}</span></div>
-    <div class="srow"><span class="skey">時間</span><span class="sval">${t.time}</span></div>
-    <div class="srow"><span class="skey">開妝地點</span><span class="sval">${t.loc}</span></div>
-    ${t.venueAddress?`<div class="srow"><span class="skey">宴客地址</span><span class="sval">${t.venueAddress}</span></div>`:''}
-    <div class="srow"><span class="skey">人數</span><span class="sval">${t.people}</span></div>
-    ${t.peopleNote?`<div class="srow"><span class="skey">加購備注</span><span class="sval" style="color:var(--rose-deep)">${t.peopleNote}</span></div>`:''}
-    ${t.allergy?`<div class="srow"><span class="skey">過敏</span><span class="sval" style="color:var(--red)">${t.allergy}</span></div>`:''}
-    ${t.note?`<div class="srow"><span class="skey">備注</span><span class="sval">${t.note}</span></div>`:''}
+    <div class="srow"><span class="skey">服務</span><span class="sval">${escHtml(svcLabel(t.service))}</span></div>
+    <div class="srow"><span class="skey">日期</span><span class="sval">${escHtml(t.date)}</span></div>
+    <div class="srow"><span class="skey">時間</span><span class="sval">${escHtml(t.time)}</span></div>
+    <div class="srow"><span class="skey">開妝地點</span><span class="sval">${escHtml(t.loc)}</span></div>
+    ${t.venueAddress?`<div class="srow"><span class="skey">宴客地址</span><span class="sval">${escHtml(t.venueAddress)}</span></div>`:''}
+    <div class="srow"><span class="skey">人數</span><span class="sval">${escHtml(t.people)}</span></div>
+    ${t.peopleNote?`<div class="srow"><span class="skey">加購備注</span><span class="sval" style="color:var(--rose-deep)">${escHtml(t.peopleNote)}</span></div>`:''}
+    ${t.allergy?`<div class="srow"><span class="skey">過敏</span><span class="sval" style="color:var(--red)">${escHtml(t.allergy)}</span></div>`:''}
+    ${t.note?`<div class="srow"><span class="skey">備注</span><span class="sval">${escHtml(t.note)}</span></div>`:''}
     <div style="height:1px;background:var(--line);margin:10px 0"></div>
     <div style="font-size:11px;font-weight:500;letter-spacing:0.14em;color:var(--rose);margin-bottom:10px">收款狀況</div>
     <div style="background:var(--warm);border-radius:8px;padding:10px 14px;margin-bottom:6px;display:flex;justify-content:space-between"><span style="font-size:13px;color:var(--sub)">訂金</span><span style="font-size:13px;font-weight:500;color:${t.pay==='unpaid'?'var(--red)':'var(--green)'}">${t.pay==='unpaid'?'未收取':'已收 NT$ '+t.deposit_amt.toLocaleString()}</span></div>
@@ -1507,13 +1542,13 @@ function renderPaymentIncome(){
         return`<div class="pcard" style="${hist?'opacity:0.75':''}">
           <div class="pcard-accent ${o.pay}"></div>
           <div class="pcard-inner">
-            <div class="pcard-top"><div><div class="pcard-name">${o.name}</div><div class="pcard-svc">${svcLabel(o.service)}</div></div><span class="badge badge-${o.pay}">${PAY_LABEL[o.pay]}</span></div>
+            <div class="pcard-top"><div><div class="pcard-name">${escHtml(o.name)}</div><div class="pcard-svc">${escHtml(svcLabel(o.service))}</div></div><span class="badge badge-${o.pay}">${PAY_LABEL[o.pay]}</span></div>
             <div class="amt-row">
               <div class="amt-box"><div class="amt-label">待收</div><div class="amt-val ${pend>0?'amber':'green'}">$${pend.toLocaleString()}</div></div>
               <div class="amt-box"><div class="amt-label">已收</div><div class="amt-val ${recv>0?'green':'red'}">$${recv.toLocaleString()}</div></div>
               <div class="amt-box"><div class="amt-label">總金額</div><div class="amt-val">$${o.final_amt.toLocaleString()}</div></div>
             </div>
-            <div class="pcard-date"><i class="ti ti-calendar" style="font-size:12px"></i>${o.date}</div>
+            <div class="pcard-date"><i class="ti ti-calendar" style="font-size:12px"></i>${escHtml(o.date)}</div>
             ${o.pay!=='paid'?`<div class="pcard-actions"><div class="pact-btn primary" onclick="openPayConfirm(${o.id},'list')">確認收款</div></div>`:''}
           </div></div>`;
       }).join('');
@@ -1580,7 +1615,7 @@ function renderPaymentExpense(){
   const list=document.getElementById('payList');
   const orderExps=me.filter(e=>e.type==='order');
   const opExps=me.filter(e=>e.type!=='order');
-  const expCard=(e)=>`<div class="ecard"><div class="ecard-accent" style="background:${e.type==='order'?'var(--deposit-dot)':'var(--unpaid-dot)'}"></div><div class="ecard-inner"><div class="ecard-top"><div><div class="ecard-name">${e.name}</div><div class="ecard-cat">${e.cat}${e.type==='order'&&e.orderId?'・'+( orders.find(o=>o.id===e.orderId)||{name:'—'}).name:''}</div></div><div class="ecard-amt">- $${e.amt.toLocaleString()}</div></div><div style="font-size:12px;color:var(--sub);margin-top:6px;display:flex;align-items:center;gap:4px"><i class="ti ti-calendar" style="font-size:12px"></i>${e.date}</div></div></div>`;
+  const expCard=(e)=>`<div class="ecard"><div class="ecard-accent" style="background:${e.type==='order'?'var(--deposit-dot)':'var(--unpaid-dot)'}"></div><div class="ecard-inner"><div class="ecard-top"><div><div class="ecard-name">${escHtml(e.name)}</div><div class="ecard-cat">${escHtml(e.cat)}${escHtml(e.type==='order'&&e.orderId?'・'+( orders.find(o=>o.id===e.orderId)||{name:'—'}).name:'')}</div></div><div class="ecard-amt">- $${e.amt.toLocaleString()}</div></div><div style="font-size:12px;color:var(--sub);margin-top:6px;display:flex;align-items:center;gap:4px"><i class="ti ti-calendar" style="font-size:12px"></i>${escHtml(e.date)}</div></div></div>`;
   list.innerHTML=`<button class="add-exp-btn" onclick="openExpModal()"><i class="ti ti-plus"></i>新增支出</button>`+
     (me.length===0?'<div style="text-align:center;padding:24px 0;color:var(--sub);font-size:13px">這個月還沒有支出紀錄</div>':
     (orderExps.length?`<div style="font-size:11px;font-weight:500;letter-spacing:0.14em;color:var(--rose);margin-bottom:8px;display:flex;justify-content:space-between"><span>訂單支出</span><span style="font-weight:400;color:var(--sub)">共 - $${totalOrderExp.toLocaleString()}</span></div>`+orderExps.map(expCard).join(''):'')
@@ -1612,7 +1647,7 @@ function openExpModal(){
   // populate orders dropdown
   const sel=document.getElementById('expOrderId');
   sel.innerHTML='<option value="">不指定</option>'+
-    orders.map(o=>`<option value="${o.id}">${o.name}・${svcLabel(o.service)}・${o.date}</option>`).join('');
+    orders.map(o=>`<option value="${o.id}">${escHtml(o.name)}・${escHtml(svcLabel(o.service))}・${escHtml(o.date)}</option>`).join('');
   document.getElementById('expModal').classList.add('show');
 }
 function addExpense(){
@@ -1631,9 +1666,11 @@ function addExpense(){
 let clientFilter='all';
 let clientSearch='';
 let clientView='list';
+let clientMode='care';   // ADM-B8：客戶分頁預設顯示「待關懷」
 let activeTags=new Set();
 
 function toggleClientView(){
+  if(clientMode==='care'){clientMode='all';const mt=document.getElementById('clientModeTabs');if(mt)mt.querySelectorAll('.ftab').forEach(x=>x.classList.toggle('on',x.dataset.mode==='all'));}
   clientView=clientView==='list'?'tags':'list';
   document.getElementById('clientSearchInput').placeholder=clientView==='tags'?'直接輸入關鍵字搜尋…':'搜尋客戶姓名…';
   document.getElementById('clientFilterTabs').style.display=clientView==='list'?'flex':'none';
@@ -1644,6 +1681,7 @@ function filterClients(v){clientSearch=v.toLowerCase();renderClients();}
 
 function renderClients(){
   const content=document.getElementById('clientContent');
+  if(clientMode==='care'){renderCareList(content);return;}   // ADM-B8
   if(clientView==='list'){
     const filtered=clients.filter(c=>{
       const ms=!clientSearch||c.name.toLowerCase().includes(clientSearch);
@@ -1653,13 +1691,13 @@ function renderClients(){
     content.innerHTML=`<div style="padding:12px 16px ${filtered.length?'0':'12px'}">`+
       (filtered.length?filtered.map(c=>`
         <div class="ccard" onclick="openClientDetail(${c.id})">
-          <div class="cavatar ${c.repeat?'repeat':''}">${c.name[0]}</div>
+          <div class="cavatar ${c.repeat?'repeat':''}">${escHtml(c.name[0])}</div>
           <div class="cinfo">
-            <div class="cname-row"><span class="cname">${c.name}</span>${c.repeat?'<span class="repeat-badge">回頭客</span>':''}</div>
-            <div style="font-size:12px;color:var(--sub);margin:2px 0">${c.phone}</div>
+            <div class="cname-row"><span class="cname">${escHtml(c.name)}</span>${c.repeat?'<span class="repeat-badge">回頭客</span>':''}</div>
+            <div style="font-size:12px;color:var(--sub);margin:2px 0">${escHtml(c.phone)}</div>
             <div class="ctags">
-              ${(c.skin||[]).map(s=>`<span class="ctag ${s==='敏感肌'||s==='痘痘肌'?'warn':''}">${s}</span>`).join('')}
-              ${c.allergy?`<span class="ctag warn">⚠ ${c.allergy}</span>`:''}
+              ${(c.skin||[]).map(s=>`<span class="ctag ${s==='敏感肌'||s==='痘痘肌'?'warn':''}">${escHtml(s)}</span>`).join('')}
+              ${c.allergy?`<span class="ctag warn">⚠ ${escHtml(c.allergy)}</span>`:''}
             </div>
           </div>
           <div class="cright"><div class="corder-count">${c.orderCount||0} 筆</div><div class="clast">${c.lastServiceDate||''}</div></div>
@@ -1694,7 +1732,7 @@ function renderTagSearch(container){
     ?`<div style="text-align:center;padding:40px 0"><i class="ti ti-tag" style="font-size:32px;color:var(--line);display:block;margin-bottom:10px"></i><div style="font-size:13px;color:var(--sub);line-height:1.8">點選標籤或輸入關鍵字<br>來搜尋訂單與素材日期</div></div>`
     :(!filtered.length?filtersHtml+`<div style="text-align:center;padding:24px 0;color:var(--sub);font-size:13px">沒有符合的結果</div>`
     :filtersHtml+`<div style="font-size:12px;font-weight:500;letter-spacing:0.1em;color:var(--rose);margin-bottom:8px">找到 ${filtered.length} 筆結果</div>`+
-    filtered.map(r=>`<div class="rcard"><div class="rcard-top"><div class="rcard-name">${r.name}</div><span class="rcard-type">${r.type}</span></div><div class="rcard-svc">${r.service}</div><div class="rcard-date"><i class="ti ti-calendar" style="font-size:13px"></i>${r.date}</div><div class="chips">${r.tags.map(t=>`<span class="rtag ${activeTags.has(t)||(clientSearch&&t.includes(clientSearch))?'match':''}">${t}</span>`).join('')}</div></div>`).join(''));
+    filtered.map(r=>`<div class="rcard"><div class="rcard-top"><div class="rcard-name">${escHtml(r.name)}</div><span class="rcard-type">${escHtml(r.type)}</span></div><div class="rcard-svc">${escHtml(r.service)}</div><div class="rcard-date"><i class="ti ti-calendar" style="font-size:13px"></i>${escHtml(r.date)}</div><div class="chips">${r.tags.map(t=>`<span class="rtag ${activeTags.has(t)||(clientSearch&&t.includes(clientSearch))?'match':''}">${escHtml(t)}</span>`).join('')}</div></div>`).join(''));
   container.innerHTML=`<div style="padding:12px 16px 0">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
       <div style="font-size:13px;font-weight:500;color:var(--text)">標籤搜尋</div>
@@ -1716,8 +1754,8 @@ function openClientDetail(id){
   document.getElementById('clientDetailContent').innerHTML=`
     <div class="sheet-handle"></div>
     <div class="profile-hero">
-      <div class="profile-av ${c.repeat?'repeat':''}">${c.name[0]}</div>
-      <div><div class="profile-name">${c.name}</div>
+      <div class="profile-av ${c.repeat?'repeat':''}">${escHtml(c.name[0])}</div>
+      <div><div class="profile-name">${escHtml(c.name)}</div>
         <div style="display:flex;gap:6px;flex-wrap:wrap">
           ${c.repeat?'<span class="repeat-badge">回頭客</span>':''}
           ${c.allergy?'<span class="ctag warn">⚠ 過敏注意</span>':''}
@@ -1726,21 +1764,23 @@ function openClientDetail(id){
     </div>
     <div class="profile-sec">
       <div class="sec-title" style="margin-bottom:10px">基本資料</div>
-      <div class="srow"><span class="skey">電話</span><span class="sval">${c.phone}</span></div>
-      <div class="srow"><span class="skey">風格偏好</span><span class="sval">${c.style||'未填'}</span></div>
+      <div class="srow"><span class="skey">電話</span><span class="sval">${escHtml(c.phone)}</span></div>
+      <div class="srow"><span class="skey">風格偏好</span><span class="sval">${escHtml(c.style||'未填')}</span></div>
       <div class="srow"><span class="skey">服務次數</span><span class="sval">${c.orderCount||0} 次</span></div>
+      ${c.careNote?`<div class="srow"><span class="skey">課後關懷</span><span class="sval">${escHtml(c.careNote)}</span></div>`:''}
+      ${c.careStatus?`<div class="srow"><span class="skey">關懷狀態</span><span class="sval">${escHtml(c.careStatus)}${c.caredAt?'（'+escHtml(c.caredAt)+'）':''}</span></div>`:''}
     </div>
     <div class="profile-sec">
       <div class="sec-title" style="margin-bottom:10px">膚質與過敏</div>
       <div class="chips" style="margin-bottom:${c.allergy?'10px':'0'}">
-        ${(c.skin||[]).map(s=>`<span class="skin-chip ${s==='敏感肌'||s==='痘痘肌'?'warn':''}">${s}</span>`).join('')}
+        ${(c.skin||[]).map(s=>`<span class="skin-chip ${s==='敏感肌'||s==='痘痘肌'?'warn':''}">${escHtml(s)}</span>`).join('')}
       </div>
-      ${c.allergy?`<div class="srow" style="margin-top:8px"><span class="skey">過敏成分</span><span class="sval" style="color:var(--red)">${c.allergy}</span></div>`:''}
-      ${c.note?`<div style="background:var(--rose-bg);border-radius:8px;padding:10px 12px;margin-top:10px;font-size:13px;color:var(--sub);line-height:1.6">${c.note}</div>`:''}
+      ${c.allergy?`<div class="srow" style="margin-top:8px"><span class="skey">過敏成分</span><span class="sval" style="color:var(--red)">${escHtml(c.allergy)}</span></div>`:''}
+      ${c.note?`<div style="background:var(--rose-bg);border-radius:8px;padding:10px 12px;margin-top:10px;font-size:13px;color:var(--sub);line-height:1.6">${escHtml(c.note)}</div>`:''}
     </div>
     <div class="profile-sec">
       <div class="sec-title" style="margin-bottom:10px">歷史訂單（${histOrders.length} 筆）</div>
-      ${histOrders.map(o=>`<div class="hist-card"><div class="hist-top"><span class="hist-name">${svcLabel(o.service)}</span><span class="hist-date">${o.date}</span></div><div class="hist-meta"><i class="ti ti-map-pin" style="font-size:11px;margin-right:3px"></i>${o.loc}</div></div>`).join('')||'<div style="text-align:center;padding:16px;color:var(--sub);font-size:13px">尚無訂單記錄</div>'}
+      ${histOrders.map(o=>`<div class="hist-card"><div class="hist-top"><span class="hist-name">${escHtml(svcLabel(o.service))}</span><span class="hist-date">${escHtml(o.date)}</span></div><div class="hist-meta"><i class="ti ti-map-pin" style="font-size:11px;margin-right:3px"></i>${escHtml(o.loc)}</div></div>`).join('')||'<div style="text-align:center;padding:16px;color:var(--sub);font-size:13px">尚無訂單記錄</div>'}
     </div>
     <div class="sheet-actions">
       <div class="sact" onclick="openEditClientSheet(${c.id})"><i class="ti ti-edit"></i> 編輯</div>
@@ -1785,21 +1825,22 @@ function openEditClientSheet(id){
   closeSheet('clientDetailSheet');
   document.getElementById('editClientSheetTitle').textContent=c.name+'・編輯客戶';
   document.getElementById('editClientSheetBody').innerHTML=`
-    <div class="field"><label class="fl">姓名</label><input type="text" id="ecName" value="${c.name}"></div>
-    <div class="field"><label class="fl">電話</label><input type="tel" id="ecPhone" value="${c.phone||''}" placeholder="0912-345-678"></div>
+    <div class="field"><label class="fl">姓名</label><input type="text" id="ecName" value="${escHtml(c.name)}"></div>
+    <div class="field"><label class="fl">電話</label><input type="tel" id="ecPhone" value="${escHtml(c.phone||'')}" placeholder="0912-345-678"></div>
     <div class="field"><label class="fl">膚質（可複選）</label>
       <div class="chips" id="ecSkinChips">
         ${skinChips(c.skin,'ecToggleSkin')}
       </div>
     </div>
-    <div class="field"><label class="fl">過敏成分</label><input type="text" id="ecAllergy" value="${c.allergy||''}" placeholder="例：含酒精、防腐劑"></div>
+    <div class="field"><label class="fl">過敏成分</label><input type="text" id="ecAllergy" value="${escHtml(c.allergy||'')}" placeholder="例：含酒精、防腐劑"></div>
     <div class="field"><label class="fl">風格偏好</label>
       <select id="ecStyle">
         <option value="">未設定</option>
         ${STYLES.map(s=>`<option ${c.style===s?'selected':''}>${s}</option>`).join('')}
       </select>
     </div>
-    <div class="field"><label class="fl">備注</label><textarea id="ecNote" style="min-height:80px" placeholder="客戶習慣、注意事項等…">${c.note||''}</textarea></div>
+    <div class="field"><label class="fl">備注</label><textarea id="ecNote" style="min-height:80px" placeholder="客戶習慣、注意事項等…">${escHtml(c.note||'')}</textarea></div>
+    <div class="field"><label class="fl">課後關懷方向／備註</label><textarea id="ecCareNote" style="min-height:60px" placeholder="例：眉形還不穩，建議複訓練眉＋眼影">${escHtml(c.careNote||'')}</textarea></div>
   `;
   document.getElementById('editClientSheet').classList.add('show');
 }
@@ -1819,6 +1860,7 @@ function saveEditClient(){
   c.allergy=document.getElementById('ecAllergy').value.trim();
   c.style=document.getElementById('ecStyle').value;
   c.note=document.getElementById('ecNote').value.trim();
+  const ecCare=document.getElementById('ecCareNote');if(ecCare)c.careNote=ecCare.value.trim();   // ADM-B8
   // skin already updated live via ecToggleSkin
   saveData();
   if(isCloudReady()){ cloudSave('updateClient',{client:clients.find(x=>x.id===editClientId)}); }
@@ -1832,7 +1874,7 @@ function saveEditClient(){
 // ADD ORDER
 let addStep=1;
 let addForm={isExisting:false,clientName:'',phone:'',serviceBlocks:[{service:'',date:'',time:'06:00',loc:'',venueAddress:'',people:'僅新娘',peopleNote:'',total:'',deposit:''}],skin:[],allergy:'',style:'自然清透感',note:'',tags:[]};
-const EXISTING_CLIENTS=[{name:'陳雅婷',phone:'0923-456-789',orders:2},{name:'蔡佳穎',phone:'0956-789-012',orders:2},{name:'林怡君',phone:'0912-345-678',orders:1}];
+// ADM-B8：拿掉示範名單 EXISTING_CLIENTS，搜尋既有客戶改讀真正的 clients
 
 let prevPage='dashboard';
 // ADM-A1：防重複送出。送出後鎖住，直到重新開啟新增訂單表單才解鎖
@@ -1847,7 +1889,7 @@ function openAddOrder(){
   document.getElementById('addStepsBar').style.display='flex';
   addStep=1;
   isSubmittingOrder=false;
-  addForm={isExisting:false,clientName:'',phone:'',serviceBlocks:[{service:'',date:'',time:'06:00',loc:'',venueAddress:'',people:'僅新娘',peopleNote:'',total:'',deposit:''}],skin:[],allergy:'',style:'自然清透感',note:'',tags:[]};
+  addForm={mode:'normal',plan:'',retrain:null,isExisting:false,clientName:'',phone:'',serviceBlocks:[{service:'',date:'',time:'06:00',loc:'',venueAddress:'',people:'僅新娘',peopleNote:'',total:'',deposit:''}],skin:[],allergy:'',style:'自然清透感',note:'',tags:[]};
   renderAddSteps();renderAddForm();
 }
 function closeAddOrder(){
@@ -1878,8 +1920,10 @@ function renderAddSteps(){
 
 function renderAddForm(){
   const c=document.getElementById('addFormContent');
-  if(addStep===1){
-    c.innerHTML=`
+  if(addStep===1&&addForm.mode==='retrain'){
+    c.innerHTML=addModeTabsHtml()+addRetrainStep1Html();   // ADM-B8：舊生複訓
+  } else if(addStep===1){
+    c.innerHTML=addModeTabsHtml()+`
       <div class="sec-divider">客戶資料</div>
       <div class="field">
         <label class="fl">搜尋既有客戶</label>
@@ -1887,13 +1931,12 @@ function renderAddForm(){
           <i class="ti ti-search search-icon"></i>
           <input class="search-input" type="text" placeholder="輸入姓名搜尋…" id="addClientSearch" oninput="addSearchClient()" autocomplete="off" style="padding-left:40px">
           <div class="client-dd" id="addClientDd">
-            ${EXISTING_CLIENTS.map(c=>`<div class="client-opt" onclick="addSelectClient('${c.name}','${c.phone}')"><div>${c.name}</div><div class="client-opt-sub">${c.phone} · ${c.orders} 次</div></div>`).join('')}
           </div>
         </div>
       </div>
-      <div id="addExistingTag" style="display:${addForm.isExisting?'block':'none'}"><span class="existing-tag"><i class="ti ti-user-check"></i>${addForm.clientName}（既有客戶）</span></div>
-      <div class="field"><label class="fl">姓名 <span class="req">*</span></label><input type="text" id="addName" placeholder="客戶姓名" value="${addForm.clientName}" oninput="addForm.clientName=this.value"></div>
-      <div class="field"><label class="fl">聯絡電話 <span class="req">*</span></label><input type="tel" placeholder="0912-345-678" value="${addForm.phone}" oninput="addForm.phone=this.value"></div>`;
+      <div id="addExistingTag" style="display:${addForm.isExisting?'block':'none'}"><span class="existing-tag"><i class="ti ti-user-check"></i>${escHtml(addForm.clientName)}（既有客戶）</span></div>
+      <div class="field"><label class="fl">姓名 <span class="req">*</span></label><input type="text" id="addName" placeholder="客戶姓名" value="${escHtml(addForm.clientName)}" oninput="addForm.clientName=this.value"></div>
+      <div class="field"><label class="fl">聯絡電話 <span class="req">*</span></label><input type="tel" placeholder="0912-345-678" value="${escHtml(addForm.phone)}" oninput="addForm.phone=this.value"></div>`;
   } else if(addStep===2){
     const blocksHtml=addForm.serviceBlocks.map((b,i)=>`
       <div style="background:var(--white);border:0.5px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:12px;position:relative">
@@ -1904,20 +1947,20 @@ function renderAddForm(){
         <div class="field"><label class="fl">服務類型 <span class="req">*</span></label>
           <select onchange="updateBlock(${i},'service',this.value)">
             <option value="">請選擇</option>
-            ${serviceOptions(b.service).map(s=>`<option ${b.service===s?'selected':''}>${s}</option>`).join('')}
+            ${(addForm.mode==='retrain'?RETRAIN_SERVICES:serviceOptions(b.service)).map(s=>`<option ${b.service===s?'selected':''}>${escHtml(s)}</option>`).join('')}
           </select>
         </div>
         <div class="drow">
-          <div class="field"><label class="fl">日期 <span class="req">*</span></label><input type="date" value="${b.date}" onchange="updateBlock(${i},'date',this.value)"></div>
-          <div class="field"><label class="fl">時間</label><input type="time" value="${b.time||''}" onchange="updateBlock(${i},'time',this.value)"></div>
+          <div class="field"><label class="fl">日期 <span class="req">*</span></label><input type="date" value="${escHtml(b.date)}" onchange="updateBlock(${i},'date',this.value)"></div>
+          <div class="field"><label class="fl">時間</label><input type="time" value="${escHtml(b.time||'')}" onchange="updateBlock(${i},'time',this.value)"></div>
         </div>
         <div class="field"><label class="fl">開妝地點 ${addLocOptional(b.service)?'<span style="font-weight:400;color:var(--sub)">（選填）</span>':'<span class="req">*</span>'}</label><input type="text" placeholder="${addLocOptional(b.service)?'空白＝在工作室':'飯店或場地名稱'}" value="${escHtml(b.loc)}" oninput="updateBlock(${i},'loc',this.value)"></div>
-      <div class="field"><label class="fl">宴客地址</label><input type="text" placeholder="宴客場地完整地址" value="${b.venueAddress||''}" oninput="updateBlock(${i},'venueAddress',this.value)"></div>
+      <div class="field"><label class="fl">宴客地址</label><input type="text" placeholder="宴客場地完整地址" value="${escHtml(b.venueAddress||'')}" oninput="updateBlock(${i},'venueAddress',this.value)"></div>
         <div class="field"><label class="fl">服務人數</label>
-          <input type="text" placeholder="例：新娘＋媽媽（2 人）" value="${b.people||''}" oninput="updateBlock(${i},'people',this.value)">
+          <input type="text" placeholder="例：新娘＋媽媽（2 人）" value="${escHtml(b.people||'')}" oninput="updateBlock(${i},'people',this.value)">
         </div>
         <div class="field" style="margin-bottom:0"><label class="fl">人數備注／加購說明</label>
-          <textarea placeholder="例：媽媽加購妝髮 NT$3,000…" onblur="updateBlock(${i},'peopleNote',this.value)" style="min-height:50px">${b.peopleNote}</textarea>
+          <textarea placeholder="例：媽媽加購妝髮 NT$3,000…" onblur="updateBlock(${i},'peopleNote',this.value)" style="min-height:50px">${escHtml(b.peopleNote)}</textarea>
         </div>
       </div>
     `).join('');
@@ -1934,7 +1977,7 @@ function renderAddForm(){
       <div class="chips" style="margin-bottom:14px">
         ${skinChips(addForm.skin,'addToggleSkin')}
       </div>
-      <div class="field"><label class="fl">過敏成分</label><input type="text" placeholder="例：含酒精、防腐劑" value="${addForm.allergy}" oninput="addForm.allergy=this.value"></div>
+      <div class="field"><label class="fl">過敏成分</label><input type="text" placeholder="例：含酒精、防腐劑" value="${escHtml(addForm.allergy)}" oninput="addForm.allergy=this.value"></div>
       <div class="sec-divider">風格偏好</div>
       <div class="chips" style="margin-bottom:14px">
         ${STYLES.map(s=>`<div class="chip ${addForm.style===s?'on':''}" onclick="addForm.style='${s}';renderAddForm()">${s}</div>`).join('')}
@@ -1943,15 +1986,16 @@ function renderAddForm(){
       <div class="chips" style="margin-bottom:14px">
         ${tags.map(t=>`<div class="chip ${addForm.tags.includes(t.name)?'on':''}" onclick="addToggleTag('${t.name}')">${t.name}</div>`).join('')}
       </div>
-      <div class="field"><label class="fl">特殊需求備注</label><textarea placeholder="任何需要特別注意的事項…" oninput="addForm.note=this.value">${addForm.note}</textarea></div>`;
+      <div class="field"><label class="fl">特殊需求備注</label><textarea placeholder="任何需要特別注意的事項…" oninput="addForm.note=this.value">${escHtml(addForm.note)}</textarea></div>`;
   } else {
     const blocksHtml=addForm.serviceBlocks.map((b,i)=>`
       <div style="background:var(--white);border:0.5px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:10px">
-        <div style="font-size:13px;font-weight:500;color:var(--rose-deep);margin-bottom:10px">${b.service||'（未選擇服務）'} <span style="font-weight:400;color:var(--sub);font-size:12px">· ${b.date||'—'} ${b.time||''}</span></div>
+        <div style="font-size:13px;font-weight:500;color:var(--rose-deep);margin-bottom:10px">${escHtml(b.service||'（未選擇服務）')} <span style="font-weight:400;color:var(--sub);font-size:12px">· ${escHtml(b.date||'—')} ${escHtml(b.time||'')}</span></div>
         <div class="drow">
-          <div class="field" style="margin-bottom:0"><label class="fl">總金額 <span class="req">*</span></label><input type="number" id="blockTotal${i}" placeholder="NT$" value="${b.total}" oninput="updateBlock(${i},'total',this.value);updateStep4Summary()"></div>
-          <div class="field" style="margin-bottom:0"><label class="fl">訂金金額</label><input type="number" id="blockDeposit${i}" placeholder="建議 30%" value="${b.deposit}" oninput="updateBlock(${i},'deposit',this.value)"></div>
+          <div class="field" style="margin-bottom:0"><label class="fl">總金額 <span class="req">*</span></label><input type="number" id="blockTotal${i}" placeholder="NT$" value="${escHtml(b.total)}" oninput="updateBlock(${i},'total',this.value);updateStep4Summary()"></div>
+          <div class="field" style="margin-bottom:0"><label class="fl">訂金金額</label><input type="number" id="blockDeposit${i}" placeholder="建議 30%" value="${escHtml(b.deposit)}" oninput="updateBlock(${i},'deposit',this.value)"></div>
         </div>
+        ${svcPrice(b.service)!==null?`<div style="font-size:11px;color:var(--sub);margin-top:6px">標準價 NT$ ${svcPrice(b.service).toLocaleString()}（已自動帶入，可直接修改，例如給折扣）</div>`:''}
       </div>
     `).join('');
 
@@ -1965,8 +2009,8 @@ function renderAddForm(){
       <div style="font-size:11px;color:var(--sub);margin-bottom:16px">每個項目將建立獨立訂單，付款狀態各自為「未付款」</div>
       <div class="sec-divider">確認訂單</div>
       <div id="step4Summary" style="background:var(--white);border:0.5px solid var(--line);border-radius:12px;padding:14px 16px">
-        <div class="srow"><span class="skey">客戶</span><span class="sval">${addForm.clientName||'—'}</span></div>
-        ${addForm.serviceBlocks.map((b,i)=>`<div class="srow"><span class="skey">項目 ${i+1}</span><span class="sval">${b.service||'—'}・${b.date||'—'}・$${(parseInt(b.total)||0).toLocaleString()}</span></div>`).join('')}
+        <div class="srow"><span class="skey">客戶</span><span class="sval">${escHtml(addForm.clientName||'—')}</span></div>
+        ${addForm.serviceBlocks.map((b,i)=>`<div class="srow"><span class="skey">項目 ${i+1}</span><span class="sval">${escHtml(b.service||'—')}・${escHtml(b.date||'—')}・$${(parseInt(b.total)||0).toLocaleString()}</span></div>`).join('')}
         <div class="srow"><span class="skey" style="font-weight:500">總計</span><span class="sval" style="font-weight:700;color:var(--rose-deep)">$${grandTotal.toLocaleString()}</span></div>
       </div>`;
     checkAddConflicts();
@@ -1979,16 +2023,22 @@ function updateStep4Summary(){
   if(!summaryEl)return;
   const grandTotal=addForm.serviceBlocks.reduce((s,b)=>s+(parseInt(b.total)||0),0);
   const rowsHtml=addForm.serviceBlocks.map((b,i)=>
-    `<div class="srow"><span class="skey">項目 ${i+1}</span><span class="sval">${b.service||'—'}・${b.date||'—'}・$${(parseInt(b.total)||0).toLocaleString()}</span></div>`
+    `<div class="srow"><span class="skey">項目 ${i+1}</span><span class="sval">${escHtml(b.service||'—')}・${escHtml(b.date||'—')}・$${(parseInt(b.total)||0).toLocaleString()}</span></div>`
   ).join('');
   summaryEl.innerHTML=`
-    <div class="srow"><span class="skey">客戶</span><span class="sval">${addForm.clientName||'—'}</span></div>
+    <div class="srow"><span class="skey">客戶</span><span class="sval">${escHtml(addForm.clientName||'—')}</span></div>
     ${rowsHtml}
     <div class="srow"><span class="skey" style="font-weight:500">總計</span><span class="sval" style="font-weight:700;color:var(--rose-deep)">$${grandTotal.toLocaleString()}</span></div>`;
 }
 
 function addNextStep(){
-  if(addStep===1){
+  if(addStep===1&&addForm.mode==='retrain'){
+    if(!isRetrainService(addForm.plan)){alert('請選擇複訓方案（1 小時或 2 小時）');return;}
+    if(!addForm.retrain){alert('請選擇學生；系統找不到時按「老師確認是舊生」');return;}
+    const nameEl=document.getElementById('addName');
+    if(nameEl)addForm.clientName=nameEl.value.trim();
+    if(!addForm.clientName){alert('請填寫學生姓名');return;}
+  } else if(addStep===1){
     const nameEl=document.getElementById('addName');
     if(nameEl)addForm.clientName=nameEl.value.trim();
     if(!addForm.clientName){alert('請填寫客戶姓名');return;}
@@ -2016,6 +2066,8 @@ function updateBlock(i,key,val){
   if(key==='service'){
     if(addLocOptional(val)){if(b.people==='僅新娘')b.people='';}
     else if(!b.people&&serviceCategoryOf(val)==='新秘')b.people='僅新娘';
+    applyAutoPrice(b);   // ADM-B8：標準價
+    if(addForm.mode==='retrain'&&i===0&&isRetrainService(val))addForm.plan=val;
     renderAddForm();
   }
 }
@@ -2035,9 +2087,10 @@ function addSearchClient(){
   const v=document.getElementById('addClientSearch').value.toLowerCase();
   const dd=document.getElementById('addClientDd');
   if(!v){dd.classList.remove('show');return;}
-  const m=EXISTING_CLIENTS.filter(c=>c.name.includes(v));
+  const digits=v.replace(/\D/g,'');
+  const m=(clients||[]).filter(c=>String(c.name||'').toLowerCase().includes(v)||(digits.length>=3&&String(c.phone||'').replace(/\D/g,'').includes(digits))).slice(0,20);
   if(!m.length){dd.classList.remove('show');return;}
-  dd.innerHTML=m.map(c=>`<div class="client-opt" onclick="addSelectClient('${c.name}','${c.phone}')"><div>${c.name}</div><div class="client-opt-sub">${c.phone} · ${c.orders} 次</div></div>`).join('');
+  dd.innerHTML=m.map(c=>`<div class="client-opt" data-id="${escHtml(c.id)}" onclick="addSelectClientById(this.dataset.id)"><div>${escHtml(c.name)}</div><div class="client-opt-sub">${escHtml(c.phone||'沒有電話')} · ${parseInt(c.orderCount)||0} 次</div></div>`).join('');
   dd.classList.add('show');
 }
 function addSelectClient(name,phone){
@@ -2257,28 +2310,28 @@ function openEditSheet(id){
   // find sibling orders from same booking (other service items in this booking)
   const siblings=orders.filter(o=>o.bookingId&&o.bookingId===t.bookingId&&o.id!==t.id);
   document.getElementById('editSheetBody').innerHTML=`
-    ${siblings.length?`<div style="background:var(--rose-bg);border-radius:8px;padding:9px 12px;margin-bottom:14px;font-size:12px;color:var(--rose-deep)"><i class="ti ti-link" style="margin-right:5px"></i>此預約還包含：${siblings.map(s=>s.service+'('+s.date+')').join('、')}</div>`:''}
+    ${siblings.length?`<div style="background:var(--rose-bg);border-radius:8px;padding:9px 12px;margin-bottom:14px;font-size:12px;color:var(--rose-deep)"><i class="ti ti-link" style="margin-right:5px"></i>此預約還包含：${escHtml(siblings.map(s=>s.service+'('+s.date+')').join('、'))}</div>`:''}
     <div class="field"><label class="fl">服務項目</label>
       <select id="editService">
-        ${serviceOptions(t.service).map(s=>`<option ${t.service===s?'selected':''}>${s}</option>`).join('')}
+        ${serviceOptions(t.service).map(s=>`<option ${t.service===s?'selected':''}>${escHtml(s)}</option>`).join('')}
       </select>
     </div>
     <div class="drow">
-      <div class="field"><label class="fl">婚禮日期</label><input type="date" id="editDate" value="${t.date}"></div>
-      <div class="field"><label class="fl">開妝時間</label><input type="time" id="editTime" value="${t.time}"></div>
+      <div class="field"><label class="fl">婚禮日期</label><input type="date" id="editDate" value="${escHtml(t.date)}"></div>
+      <div class="field"><label class="fl">開妝時間</label><input type="time" id="editTime" value="${escHtml(t.time)}"></div>
     </div>
-    <div class="field"><label class="fl">開妝地點</label><input type="text" id="editLoc" value="${t.loc}" placeholder="飯店或場地"></div>
-    <div class="field"><label class="fl">宴客地址</label><input type="text" id="editVenueAddress" value="${t.venueAddress||''}" placeholder="宴客場地完整地址"></div>
-    <div class="field"><label class="fl">服務人數</label><input type="text" id="editPeople" value="${t.people||''}" placeholder="例：新娘＋媽媽（2 人）"></div>
+    <div class="field"><label class="fl">開妝地點</label><input type="text" id="editLoc" value="${escHtml(t.loc)}" placeholder="飯店或場地"></div>
+    <div class="field"><label class="fl">宴客地址</label><input type="text" id="editVenueAddress" value="${escHtml(t.venueAddress||'')}" placeholder="宴客場地完整地址"></div>
+    <div class="field"><label class="fl">服務人數</label><input type="text" id="editPeople" value="${escHtml(t.people||'')}" placeholder="例：新娘＋媽媽（2 人）"></div>
     <div class="field"><label class="fl">人數備注／加購說明</label>
-      <textarea id="editPeopleNote" style="min-height:60px" placeholder="例：媽媽加購妝髮 NT$3,000…">${t.peopleNote||''}</textarea>
+      <textarea id="editPeopleNote" style="min-height:60px" placeholder="例：媽媽加購妝髮 NT$3,000…">${escHtml(t.peopleNote||'')}</textarea>
     </div>
-    <div class="field"><label class="fl">過敏成分</label><input type="text" id="editAllergy" value="${t.allergy||''}" placeholder="例：含酒精"></div>
+    <div class="field"><label class="fl">過敏成分</label><input type="text" id="editAllergy" value="${escHtml(t.allergy||'')}" placeholder="例：含酒精"></div>
     <div class="drow">
       <div class="field"><label class="fl">總金額</label><input type="number" id="editTotal" value="${t.final_amt||''}"></div>
       <div class="field"><label class="fl">訂金</label><input type="number" id="editDeposit" value="${t.deposit_amt||''}"></div>
     </div>
-    <div class="field"><label class="fl">特殊需求備注</label><textarea id="editNote" style="min-height:70px">${t.note||''}</textarea></div>
+    <div class="field"><label class="fl">特殊需求備注</label><textarea id="editNote" style="min-height:70px">${escHtml(t.note||'')}</textarea></div>
   `;
   document.getElementById('editSheet').classList.add('show');
 }
@@ -2445,7 +2498,7 @@ function renderCancelledList(){
       const cAt=isNaN(ms)?'—':new Date(ms).toISOString().slice(0,10);
       return `<div class="hist-card" style="display:flex;align-items:center;gap:10px">
         <div style="flex:1;min-width:0">
-          <div class="hist-top"><span class="hist-name">${o.name}・${svcLabel(o.service)}</span><span class="hist-date">${o.date}</span></div>
+          <div class="hist-top"><span class="hist-name">${escHtml(o.name)}・${escHtml(svcLabel(o.service))}</span><span class="hist-date">${escHtml(o.date)}</span></div>
           <div class="hist-meta">作廢於 ${cAt}・${left===null?'保留期限未知':'剩 '+left+' 天自動清除'}</div>
         </div>
         <div class="sact" data-id="${o.id}" onclick="restoreOrder(Number(this.dataset.id))" style="padding:8px 12px;flex-shrink:0"><i class="ti ti-arrow-back-up"></i> 還原</div>
@@ -2463,11 +2516,274 @@ function isFullDayService(service){
 }
 
 // ADM-A5：服務分類（新秘／教學／霧眉），以 GS 佔用時長 E 欄為準；還沒同步到檔期設定時用內建對照
-const DEFAULT_SERVICE_CATEGORY={'新娘秘書':'新秘','新娘試妝':'新秘','活動梳化':'新秘','婚紗拍攝造型':'新秘','彩妝教學-全妝課 (3.5小時)':'教學','彩妝教學-體驗課 (1小時)':'教學','彩妝教學':'教學','精緻柔霧眉設計':'霧眉'};
+const DEFAULT_SERVICE_CATEGORY={'新娘秘書':'新秘','新娘試妝':'新秘','活動梳化':'新秘','婚紗拍攝造型':'新秘','彩妝教學-全妝課 (3.5小時)':'教學','彩妝教學-體驗課 (1小時)':'教學','彩妝教學':'教學','精緻柔霧眉設計':'霧眉','彩妝教學-複訓 (1小時)':'教學','彩妝教學-複訓 (2小時)':'教學'};
 function serviceCategoryOf(service){
   const d=scheduleCfg&&scheduleCfg.durations?scheduleCfg.durations[service]:null;
   if(d&&d.category!==undefined)return d.category||'';
   return DEFAULT_SERVICE_CATEGORY[service]||'';
+}
+
+// ============================================================
+// ADM-B8：標準價自動帶入（試算表「佔用時長」F 欄 price）
+//   換服務／轉單時：總金額空白、或仍是上次自動帶入的價 → 換成新服務的標準價；老師改過的金額絕不覆蓋
+// ============================================================
+function svcPrice(service){
+  const d=scheduleCfg&&scheduleCfg.durations&&scheduleCfg.durations[service];
+  const p=d?d.price:null;
+  if(p===null||p===undefined||p==='')return null;
+  const n=Number(p);
+  return isFinite(n)&&n>=0?n:null;
+}
+function applyAutoPrice(b){
+  if(!b)return;
+  const hasAuto=b.autoPrice!==undefined&&b.autoPrice!==null;
+  const untouched=b.total===''||b.total===undefined||b.total===null||(hasAuto&&String(b.total)===String(b.autoPrice));
+  if(!untouched)return;
+  const p=svcPrice(b.service);
+  if(p===null){if(hasAuto)b.total='';b.autoPrice=null;return;}
+  b.total=String(p);b.autoPrice=p;
+}
+
+// ============================================================
+// ADM-B8：舊生複訓＋課後關懷
+//   合格舊生：有一筆未作廢、服務日早於今天的「彩妝教學-全妝課 (3.5小時)」訂單；依姓名（完全相同）歸戶
+//   待關懷：完課滿 careDays 天（試算表「設定」）、最近一次全妝課之後沒有複訓單、也沒被標記「已關懷／暫不需要」
+// ============================================================
+const COURSE_SERVICE='彩妝教學-全妝課 (3.5小時)';
+const RETRAIN_SERVICES=['彩妝教學-複訓 (1小時)','彩妝教學-複訓 (2小時)'];
+const RETRAIN_MANUAL_MARK='【複訓】老師確認舊生';
+const CARE_DEFAULT_DAYS=30;
+const CARE_DEFAULT_TEMPLATE='{姓名}您好～我是嫻美學的小嫻老師 🌸\n距離上次全妝課（{上次上課}）已經 {天數} 天了，最近自己上妝還順利嗎？\n上次課堂上您最想解決的是：{困擾}\n{關懷方向}\n如果想再加強，我們有舊生專屬的複訓課（1 小時／2 小時），歡迎跟我說～';
+let careOpen=null;
+function isRetrainService(s){return RETRAIN_SERVICES.indexOf(s)>=0;}
+function careName(s){return String(s===null||s===undefined?'':s).trim();}
+function careDays(){const d=scheduleCfg&&scheduleCfg.care?parseInt(scheduleCfg.care.days):NaN;return d>0?d:CARE_DEFAULT_DAYS;}
+function careTemplate(){const t=scheduleCfg&&scheduleCfg.care?scheduleCfg.care.template:'';return t&&String(t).trim()?String(t):CARE_DEFAULT_TEMPLATE;}
+function careDaysSince(ymd,today){return Math.round((anaUtc(today)-anaUtc(ymd))/864e5);}
+function alumniList(){
+  const today=anaToday();const map={};
+  (orders||[]).forEach(o=>{
+    const n=careName(o.name);
+    if(!n||o.service!==COURSE_SERVICE||o.status==='cancelled'||!anaIsYmd(o.date)||o.date>=today)return;
+    (map[n]||(map[n]={name:n,courses:[]})).courses.push(o);
+  });
+  return Object.keys(map).map(n=>{
+    const a=map[n];
+    a.courses.sort((x,y)=>x.date<y.date?1:x.date>y.date?-1:0);
+    const last=a.courses[0];
+    const client=(clients||[]).find(c=>careName(c.name)===n)||null;
+    const retrains=(orders||[]).filter(o=>careName(o.name)===n&&isRetrainService(o.service)&&o.status!=='cancelled');
+    return {name:n,lastCourse:last.date,courses:a.courses,courseCount:a.courses.length,retrains,client,
+      phone:client&&client.phone?client.phone:'',survey:anaSurvey(last.note),days:careDaysSince(last.date,today)};
+  });
+}
+function careList(){
+  const X=careDays();
+  return alumniList().filter(a=>{
+    if(a.days<X)return false;
+    if(a.retrains.some(o=>anaIsYmd(o.date)&&o.date>=a.lastCourse))return false;
+    const c=a.client;
+    if(c&&(c.careStatus==='已關懷'||c.careStatus==='暫不需要')&&anaIsYmd(c.caredAt)&&c.caredAt>=a.lastCourse)return false;
+    return true;
+  }).sort((x,y)=>x.lastCourse<y.lastCourse?1:x.lastCourse>y.lastCourse?-1:(x.name<y.name?-1:1));
+}
+// 範本代入；某一行的代入值是空的 → 整行不出現（例如沒有填困擾、還沒寫關懷方向）
+function careMessage(a){
+  const v={'姓名':a.name,'上次上課':a.lastCourse,'天數':String(a.days),'困擾':(a.survey&&a.survey.concerns||[]).join('、'),'關懷方向':a.client?a.client.careNote:''};
+  return careTemplate().split(/\r?\n/).map(line=>{
+    let empty=false;
+    const out=line.replace(/\{(姓名|上次上課|天數|困擾|關懷方向)\}/g,(m,k)=>{const s=careName(v[k]);if(!s)empty=true;return s;});
+    return empty?null:out;
+  }).filter(l=>l!==null).join('\n');
+}
+function setClientMode(m){
+  clientMode=m;careOpen=null;
+  if(m==='care')clientView='list';
+  const mt=document.getElementById('clientModeTabs');
+  if(mt)mt.querySelectorAll('.ftab').forEach(x=>x.classList.toggle('on',x.dataset.mode===m));
+  const ft=document.getElementById('clientFilterTabs');if(ft)ft.style.display=(m==='all'&&clientView==='list')?'flex':'none';
+  const si=document.getElementById('clientSearchInput');if(si)si.placeholder=m==='care'?'搜尋待關懷的姓名或電話…':(clientView==='tags'?'直接輸入關鍵字搜尋…':'搜尋客戶姓名…');
+  renderClients();
+}
+function renderCareList(content){
+  const all=careList();const X=careDays();
+  const q=clientSearch;const qd=q.replace(/\D/g,'');
+  const list=all.filter(a=>!q||a.name.toLowerCase().includes(q)||(qd.length>=3&&String(a.phone).replace(/\D/g,'').includes(qd)));
+  let h=`<div style="padding:12px 16px 4px;font-size:12px;color:var(--sub);line-height:1.6">完課滿 <b>${X}</b> 天、還沒複訓的全妝課學生（${all.length} 位）。天數在試算表「設定」careDays 修改。</div>`;
+  if(!list.length){content.innerHTML=h+`<div style="text-align:center;padding:32px 16px;color:var(--sub);font-size:13px">${all.length?'沒有符合搜尋的學生':'目前沒有待關懷的學生 🌿'}</div>`;return;}
+  h+='<div style="padding:4px 16px 16px">'+list.map(a=>{
+    const c=a.client;const open=careOpen===a.name;
+    const dir=c&&c.careNote?`<div class="care-dir">關懷方向：${escHtml(c.careNote)}</div>`:'<div class="care-dir" style="color:var(--sub)">尚未填寫關懷方向</div>';
+    return `<div class="care-card${open?' open':''}" data-name="${escHtml(a.name)}" onclick="toggleCareCard(this.dataset.name)">
+      <div class="care-top"><span class="care-name">${escHtml(a.name)}</span><span class="care-days">${a.days} 天</span></div>
+      <div class="care-meta">${escHtml(a.phone||'沒有電話')}・上次上課 ${escHtml(a.lastCourse)}${a.courseCount>1?'（全妝課 '+a.courseCount+' 次）':''}</div>
+      ${dir}${open?careDetailHtml(a):''}</div>`;
+  }).join('')+'</div>';
+  content.innerHTML=h;
+}
+function careDetailHtml(a){
+  const c=a.client;const sv=a.survey||{};
+  // 問卷行已在上面整理過 → 備註裡不重複；內容相同的備註只列一次（建客戶時會複製第一筆訂單的備註）
+  const clean=t=>String(t||'').split('\n').filter(l=>!/^【全妝課問卷】/.test(l)).join('\n').trim();
+  const notes=[];const seen=new Set();
+  const push=(label,t)=>{const v=clean(t);if(v&&!seen.has(v)){seen.add(v);notes.push([label,v]);}};
+  if(c)push('客戶備註',c.note);
+  a.courses.forEach(o=>push(o.date+' 全妝課',o.note));
+  const survey=[['經驗',sv.exp],['彩妝品',sv.kit],['困擾',(sv.concerns||[]).join('、')]].filter(x=>x[1]);
+  return `<div class="care-detail" onclick="event.stopPropagation()">
+    ${survey.length?`<div class="care-sec">上次問卷</div>${survey.map(x=>`<div class="care-line"><b>${x[0]}</b>${escHtml(x[1])}</div>`).join('')}`:''}
+    <div class="care-sec">之前的備註</div>
+    ${notes.length?notes.map(x=>`<div class="care-note"><b>${escHtml(x[0])}</b>${escHtml(x[1])}</div>`).join(''):'<div class="care-line" style="color:var(--sub)">沒有備註</div>'}
+    ${c?`<div class="care-sec">課後關懷方向／備註</div>
+    <textarea id="careNoteInput" class="care-ta" placeholder="例：眉形還不穩，建議複訓練眉＋眼影">${escHtml(c.careNote||'')}</textarea>
+    <div class="care-btn ghost" onclick="saveCareNote(this.closest('.care-card').dataset.name)">儲存關懷方向</div>`:'<div class="care-warn">找不到這位學生的客戶資料（建單時名字不同？）——關懷方向與標記需要客戶資料，可以先到「全部客戶」確認。</div>'}
+    <div class="care-sec">關懷訊息（可先修改再複製）</div>
+    <textarea id="careMsg" class="care-ta" style="min-height:120px">${escHtml(careMessage(a))}</textarea>
+    <div class="care-btn ghost" onclick="careCopy()">📋 複製關懷訊息</div>
+    <div class="care-actions">
+      <div class="care-btn${c?'':' off'}" onclick="careMark(this.closest('.care-card').dataset.name,'已關懷')">✅ 已關懷</div>
+      <div class="care-btn ghost${c?'':' off'}" onclick="careMark(this.closest('.care-card').dataset.name,'暫不需要')">暫不需要</div>
+    </div>
+    <div class="care-btn primary" onclick="careCreateRetrain(this.closest('.care-card').dataset.name)">🎓 建立複訓訂單</div>
+  </div>`;
+}
+function toggleCareCard(name){careOpen=careOpen===name?null:name;renderClients();}
+function careCopy(){
+  const ta=document.getElementById('careMsg');if(!ta)return;
+  const txt=ta.value;const done=()=>showToast('已複製關懷訊息');
+  const fallback=()=>{try{ta.focus();ta.select();if(document.execCommand('copy'))done();else showToast('請長按文字手動複製');}catch(e){showToast('請長按文字手動複製');}};
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(txt).then(done,fallback);else fallback();
+}
+async function careUpdate(name,patch,okMsg){
+  const a=alumniList().find(x=>x.name===name);const c=a&&a.client;
+  if(!c){showToast('找不到這位學生的客戶資料');return false;}
+  if(!isCloudReady()){showToast('需要連線才能更新課後關懷');return false;}
+  try{
+    const res=await callAPI(Object.assign({action:'updateClientCare',id:c.id,name:c.name},patch));
+    if(res&&res.client){c.careNote=res.client.careNote;c.careStatus=res.client.careStatus;c.caredAt=res.client.caredAt;}
+    saveToLocal();showToast(okMsg);return true;
+  }catch(e){
+    if(e&&e.sessionLost)return false;
+    showToast('⚠️ 更新失敗：'+((e&&e.message)||'請稍後再試'));return false;
+  }
+}
+async function saveCareNote(name){
+  const el=document.getElementById('careNoteInput');if(!el)return;
+  if(await careUpdate(name,{careNote:el.value.trim()},'已儲存關懷方向')){renderClients();renderCareSummarySafe();}
+}
+async function careMark(name,status){
+  if(await careUpdate(name,{careStatus:status,caredAt:anaToday()},status==='已關懷'?'已標記關懷，移出名單':'已標記暫不需要，移出名單')){
+    careOpen=null;renderClients();renderCareSummarySafe();
+  }
+}
+function careCreateRetrain(name){
+  openAddOrder();
+  addSetMode('retrain');
+  addPickAlumni(name);
+}
+function renderCareSummary(){
+  const el=document.getElementById('careSummary');if(!el)return;
+  const list=careList();
+  if(!list.length){el.innerHTML='';return;}
+  el.innerHTML=`<div class="dash-section"><div class="sec-head"><div class="sec-title">🎓 課後關懷</div><div style="font-size:12px;color:var(--rose-deep);cursor:pointer" onclick="goCareList()">查看名單 ›</div></div>
+    <div class="panel" style="cursor:pointer" onclick="goCareList()"><div style="font-size:13px;margin-bottom:6px">待關懷 <b style="color:var(--rose-deep)">${list.length}</b> 位<span style="color:var(--sub)">（完課滿 ${careDays()} 天、還沒複訓）</span></div>
+    ${list.slice(0,3).map(a=>`<div class="care-sum-row"><span>${escHtml(a.name)}</span><span>${escHtml(a.lastCourse)}・${a.days} 天</span></div>`).join('')}</div></div>`;
+}
+function renderCareSummarySafe(){try{renderCareSummary();}catch(e){console.warn('renderCareSummary:',e);}}
+function goCareList(){navTo('clients');setClientMode('care');}
+
+// ── 建單第 1 步：一般預約｜🎓 舊生複訓 ──
+function addBlankBlock(retrain){return {service:'',date:'',time:retrain?'':'06:00',loc:'',venueAddress:'',people:retrain?'':'僅新娘',peopleNote:'',total:'',deposit:''};}
+function addSetMode(m){
+  if((addForm.mode||'normal')===m)return;
+  addForm={mode:m,plan:'',retrain:null,isExisting:false,clientName:'',phone:'',serviceBlocks:[addBlankBlock(m==='retrain')],skin:[],allergy:'',style:m==='retrain'?'':'自然清透感',note:'',tags:[]};
+  renderAddForm();
+}
+function addPickPlan(svc){
+  if(!isRetrainService(svc))return;
+  addForm.plan=svc;
+  const b=addForm.serviceBlocks[0];b.service=svc;applyAutoPrice(b);
+  renderAddForm();
+}
+function addSetRetrainNote(){
+  const r=addForm.retrain;
+  const rest=String(addForm.note||'').split('\n').filter(l=>!/^【複訓】/.test(l)).join('\n');
+  const line=r?(r.manual?RETRAIN_MANUAL_MARK:'【複訓】上次全妝課 '+r.lastCourse):'';
+  addForm.note=[line,rest].filter(Boolean).join('\n');
+}
+function addPickAlumni(name){
+  const a=alumniList().find(x=>x.name===name);if(!a)return;
+  addForm.retrain={name:a.name,lastCourse:a.lastCourse,manual:false};
+  addForm.clientName=a.name;addForm.phone=a.phone||'';addForm.isExisting=!!a.client;
+  if(a.client){
+    if(a.client.skin&&a.client.skin.length)addForm.skin=[...a.client.skin];
+    if(a.client.allergy)addForm.allergy=a.client.allergy;
+    if(a.client.style)addForm.style=a.client.style;
+  }
+  addSetRetrainNote();renderAddForm();
+}
+function addRetrainManual(){addForm.retrain={name:'',lastCourse:'',manual:true};addForm.clientName='';addForm.phone='';addForm.isExisting=false;addSetRetrainNote();renderAddForm();}
+function addRetrainReset(){addForm.retrain=null;addForm.clientName='';addForm.phone='';addForm.isExisting=false;addForm.skin=[];addForm.allergy='';addForm.style='';addSetRetrainNote();renderAddForm();}
+function addAlumniItems(q){
+  const s=String(q||'').trim().toLowerCase();const d=s.replace(/\D/g,'');
+  return alumniList().filter(a=>!s||a.name.toLowerCase().includes(s)||(d.length>=3&&String(a.phone).replace(/\D/g,'').includes(d)))
+    .sort((x,y)=>x.lastCourse<y.lastCourse?1:-1).slice(0,30)
+    .map(a=>`<div class="client-opt" data-name="${escHtml(a.name)}" onclick="addPickAlumni(this.dataset.name)"><div>${escHtml(a.name)}　<span style="color:var(--sub);font-size:12px">${escHtml(a.phone||'沒有電話')}</span></div><div class="client-opt-sub">全妝課 ${escHtml(a.lastCourse)}（${a.courseCount} 次）・複訓 ${a.retrains.length} 次${a.survey.concerns.length?'・上次困擾：'+escHtml(a.survey.concerns.join('、')):''}</div></div>`).join('')
+    ||'<div style="padding:12px 14px;font-size:13px;color:var(--sub)">找不到符合的舊生</div>';
+}
+function addSearchAlumni(){const el=document.getElementById('addAlumniList');if(el)el.innerHTML=addAlumniItems(document.getElementById('addAlumniSearch').value);}
+function addRetrainStep1Html(){
+  const plans=RETRAIN_SERVICES.map(s=>{const p=svcPrice(s);const label=(s.match(/\(([^)]*)\)/)||[])[1]||s;
+    return `<div class="plan-card${addForm.plan===s?' on':''}" data-svc="${escHtml(s)}" onclick="addPickPlan(this.dataset.svc)"><div class="plan-h">${escHtml(label)}</div><div class="plan-p">${p===null?'未設定標準價':'NT$ '+p.toLocaleString()}</div></div>`;}).join('');
+  const r=addForm.retrain;let who;
+  if(r&&!r.manual){
+    const a=alumniList().find(x=>x.name===r.name)||{survey:{concerns:[]},courseCount:0,retrains:[]};
+    who=`<div class="care-card open" style="cursor:default"><div class="care-top"><span class="care-name">${escHtml(r.name)}</span><span class="care-days" style="cursor:pointer" onclick="addRetrainReset()">換一位</span></div>
+      <div class="care-meta">${escHtml(addForm.phone||'沒有電話')}・上次全妝課 ${escHtml(r.lastCourse)}（${a.courseCount} 次）・複訓 ${a.retrains.length} 次</div>
+      ${a.survey.concerns.length?`<div class="care-dir">上次困擾：${escHtml(a.survey.concerns.join('、'))}</div>`:''}</div>`;
+  }else if(r&&r.manual){
+    who=`<div class="care-warn">老師確認是舊生（系統裡找不到她的全妝課紀錄）。訂單備註會標記「${RETRAIN_MANUAL_MARK.replace('【複訓】','')}」，戰情分析分開計算。<span style="color:var(--rose-deep);cursor:pointer" onclick="addRetrainReset()">返回搜尋</span></div>
+      <div class="field"><label class="fl">姓名 <span class="req">*</span></label><input type="text" id="addName" placeholder="學生姓名" value="${escHtml(addForm.clientName)}" oninput="addForm.clientName=this.value"></div>
+      <div class="field"><label class="fl">聯絡電話</label><input type="tel" placeholder="0912-345-678" value="${escHtml(addForm.phone)}" oninput="addForm.phone=this.value"></div>`;
+  }else{
+    who=`<div class="field" style="margin-bottom:6px"><div style="position:relative"><i class="ti ti-search search-icon"></i>
+      <input class="search-input" type="text" placeholder="輸入姓名或電話搜尋舊生…" id="addAlumniSearch" oninput="addSearchAlumni()" autocomplete="off" style="padding-left:40px"></div></div>
+      <div class="client-dd show" id="addAlumniList" style="position:static;max-height:260px;overflow:auto">${addAlumniItems('')}</div>
+      <div style="font-size:12px;color:var(--sub);margin-top:8px;line-height:1.6">只列出「全妝課服務日已過、未作廢」的學生。找不到？<span style="color:var(--rose-deep);cursor:pointer;text-decoration:underline" onclick="addRetrainManual()">老師確認是舊生</span></div>`;
+  }
+  return `<div class="sec-divider">① 選擇方案</div><div class="plan-row">${plans}</div><div class="sec-divider">② 選擇學生</div>${who}`;
+}
+function addModeTabsHtml(){
+  const m=addForm.mode||'normal';
+  return `<div class="pay-filter-tabs" style="padding:0;margin:0 0 14px"><div class="ftab${m==='normal'?' on':''}" onclick="addSetMode('normal')">一般預約</div><div class="ftab${m==='retrain'?' on':''}" onclick="addSetMode('retrain')">🎓 舊生複訓</div></div>`;
+}
+function addSelectClientById(id){const c=(clients||[]).find(x=>String(x.id)===String(id));if(c)addSelectClient(c.name,c.phone||'');}
+
+// ── 戰情：舊生複訓（教學類下方）──
+function anaRetrainStats(list,r){
+  const today=anaToday();
+  const courseDates={};
+  list.forEach(o=>{if(o.service===COURSE_SERVICE&&o.status!=='cancelled'&&anaIsYmd(o.date)&&o.date<today){const n=careName(o.name);(courseDates[n]||(courseDates[n]=[])).push(o.date);}});
+  const pool=Object.keys(courseDates).filter(n=>courseDates[n].some(d=>d<=r.to));
+  const rt=list.filter(o=>isRetrainService(o.service)&&o.status!=='cancelled'&&anaIsYmd(o.date)&&o.date>=r.from&&o.date<=r.to);
+  const manualNames=new Set(),sysNames=new Set();const gaps=[];const firstRt={};
+  rt.forEach(o=>{const n=careName(o.name);
+    if(String(o.note||'').indexOf(RETRAIN_MANUAL_MARK)>=0||pool.indexOf(n)<0)manualNames.add(n);else sysNames.add(n);
+    if(!firstRt[n]||o.date<firstRt[n])firstRt[n]=o.date;});
+  manualNames.forEach(n=>sysNames.delete(n));   // 有任何一筆是手動確認的學生，整個人算手動（不進轉換率與間隔）
+  sysNames.forEach(n=>{const before=(courseDates[n]||[]).filter(d=>d<=firstRt[n]).sort();if(before.length)gaps.push(careDaysSince(before[before.length-1],firstRt[n]));});
+  const plans=RETRAIN_SERVICES.map(s=>{const os=rt.filter(o=>o.service===s);return {k:(s.match(/\(([^)]*)\)/)||[])[1]||s,n:os.length,rev:os.reduce((t,o)=>t+(parseFloat(o.final_amt)||0),0)};});
+  return {pool:pool.length,orders:rt.length,sys:sysNames.size,manual:manualNames.size,conv:pool.length?sysNames.size/pool.length:null,
+    plans,rev:plans.reduce((t,p)=>t+p.rev,0),avgGap:gaps.length?Math.round(gaps.reduce((t,g)=>t+g,0)/gaps.length):null};
+}
+function anaRetrainHtml(list,r){
+  const R=anaRetrainStats(list,r);
+  if(!R.pool&&!R.orders)return '';
+  let h=`<div class="ana-h3">🎓 舊生複訓</div><div class="ana-foot" style="margin-top:0">舊生 ${R.pool} 位（期間結束前完課）・本期複訓 ${R.sys} 位${R.conv===null?'':'（轉換率 '+Math.round(R.conv*1000)/10+'%）'}・${R.orders} 筆・${anaMoney(R.rev)}</div>`;
+  if(R.orders)h+=R.plans.map(p=>anaRow(p.k,anaPct(p.n,R.orders),'var(--viz-2)',`${p.n} 筆・${anaMoney(p.rev)}`)).join('');
+  if(R.avgGap!==null)h+=`<div class="ana-foot">平均完課後 ${R.avgGap} 天回來複訓</div>`;
+  if(R.manual)h+=`<div class="ana-foot">另有 ${R.manual} 位由老師手動確認為舊生（不計入轉換率）</div>`;
+  return h;
 }
 
 function escHtml(v){
@@ -2481,7 +2797,7 @@ function dayBlocks(ds){
 function blockPanelHtml(ds){
   const list=dayBlocks(ds);
   const rows=list.map(b=>`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0">
-      <div style="font-size:12px;color:var(--text)"><i class="ti ti-ban" style="color:var(--red);margin-right:4px"></i>${b.start?b.start+'–'+b.end:'整天'} 不接單${b.note?`<span style="color:var(--sub)">・${b.note}</span>`:''}</div>
+      <div style="font-size:12px;color:var(--text)"><i class="ti ti-ban" style="color:var(--red);margin-right:4px"></i>${b.start?b.start+'–'+b.end:'整天'} 不接單${b.note?`<span style="color:var(--sub)">・${escHtml(b.note)}</span>`:''}</div>
       <div data-id="${b.id}" onclick="deleteBlock(this.dataset.id)" style="font-size:12px;color:var(--sub);cursor:pointer;padding:2px 6px"><i class="ti ti-trash"></i></div>
     </div>`).join('');
   return `<div style="background:var(--white);border:0.5px dashed var(--line);border-radius:10px;padding:8px 12px;margin-bottom:10px">
@@ -2590,7 +2906,7 @@ async function checkAddConflicts(){
     const el=document.getElementById('conflictBox');
     if(!el)return;
     el.innerHTML=found.length
-      ?`<div style="background:var(--red-light);border:0.5px solid var(--unpaid-border);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--red);line-height:1.7"><b>⚠️ 行程衝突提醒</b>（僅提醒，不影響建立訂單）${found.map(f=>`<div style="margin-top:6px"><b>${f.b.service}・${f.b.date}${f.b.time?' '+f.b.time:''}</b><br>${f.list.join('<br>')}</div>`).join('')}</div>`
+      ?`<div style="background:var(--red-light);border:0.5px solid var(--unpaid-border);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--red);line-height:1.7"><b>⚠️ 行程衝突提醒</b>（僅提醒，不影響建立訂單）${found.map(f=>`<div style="margin-top:6px"><b>${escHtml(f.b.service)}・${escHtml(f.b.date)}${f.b.time?' '+f.b.time:''}</b><br>${f.list.map(escHtml).join('<br>')}</div>`).join('')}</div>`
       :'<div style="font-size:12px;color:var(--green);margin-bottom:12px"><i class="ti ti-circle-check" style="margin-right:4px"></i>檔期無衝突</div>';
   }catch(err){
     if(seq!==conflictSeq)return;
@@ -3342,7 +3658,7 @@ function anaHeatColor(n,max){if(!n||!max)return '';const i=Math.min(ANA_HEAT_RAM
 function anaRow(label,pct,color,value){return `<div class="ana-row"><div class="l">${escHtml(label)}</div>${anaBar([[pct,color]])}<div class="v">${value}</div></div>`;}
 function anaSection(title,inner,extra){return `<div class="dash-section"><div class="sec-head"><div class="sec-title">${title}</div>${extra||''}</div><div class="panel">${inner}</div></div>`;}
 // 首頁一定要畫完、啟動畫面才關得掉 → 分析區塊出錯只記錄，不影響其他區塊
-function renderAnalyticsSafe(){try{renderAnalytics();}catch(e){console.warn('renderAnalytics:',e);}}
+function renderAnalyticsSafe(){try{renderAnalytics();}catch(e){console.warn('renderAnalytics:',e);}renderCareSummarySafe();}
 function anaSetPreset(p){
   anaState.preset=p;anaState.cell='';anaState.bucket=-1;
   if(p==='custom'&&!(anaIsYmd(anaState.from)&&anaIsYmd(anaState.to))){const r=anaRange('month',anaToday());anaState.from=r.from;anaState.to=r.to;}
@@ -3395,7 +3711,8 @@ function renderAnalytics(){
     const head=`<div class="ana-cat"><span class="ana-dot" style="background:${color}"></span>${g.cat?escHtml(g.cat)+'類':'未分類'}<span style="color:var(--sub);font-weight:400">・${g.count} 筆・${anaMoney(g.rev)}</span></div>`;
     const svs=(byRev?g.services.slice().sort((a,b)=>b.rev-a.rev||b.count-a.count):g.services.slice().sort((a,b)=>b.count-a.count||b.rev-a.rev)).map(sv=>{
       const p=byRev?anaPct(sv.rev,totalRev):anaPct(sv.count,totalN);
-      return anaRow(anaShortSvc(sv.service),p,color,`${p}%・${sv.count} 筆`)+`<div class="ana-sub">客單價 ${anaMoney(sv.count?sv.rev/sv.count:0)}</div>`;
+      const sn=anaShortSvc(sv.service),dup=g.services.filter(x=>anaShortSvc(x.service)===sn).length>1;   // ADM-B8：同名（例：複訓 1／2 小時）保留括號
+      return anaRow(dup?sv.service:sn,p,color,`${p}%・${sv.count} 筆`)+`<div class="ana-sub">客單價 ${anaMoney(sv.count?sv.rev/sv.count:0)}</div>`;
     }).join('');
     return head+svs;
   }).join('');
@@ -3455,6 +3772,7 @@ function renderAnalytics(){
     if(anaState.showFocusRaw)prof+='<div style="margin-top:6px">'+T.items.map(it=>`<div class="ana-quote"><span>${(+String(it.date).slice(5,7))}/${(+String(it.date).slice(8,10))}・${escHtml(it.labels.join('、'))}</span>${escHtml(it.text)}</div>`).join('')+'</div>';
   }
   if(!SV.n&&!T.items.length)prof+=`<div class="ana-foot">${T.n?'這段期間的教學訂單沒有問卷資料':'這段期間沒有教學類訂單'}</div>`;
+  prof+=anaRetrainHtml(orders,r);   // ADM-B8：舊生複訓
   prof+='<div class="ana-foot">※ 2026-11 起全妝課改用勾選問卷（困擾、經驗、彩妝品）；之前從表單轉成的教學單是「最想改善的部位」填空；手動建立的教學單沒有問卷</div>';
   h+=anaSection('客人輪廓',prof);
   body.innerHTML=h;
@@ -3610,7 +3928,7 @@ async function exportContract(id){
     document.getElementById('contractResult').innerHTML=`
       <div style="text-align:center;padding:12px 0">
         <div style="width:48px;height:48px;background:var(--green-bg);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:22px;color:var(--green)"><i class="ti ti-check"></i></div>
-        <div style="font-size:15px;font-weight:500;color:var(--text);margin-bottom:6px">${t.name}・合約書</div>
+        <div style="font-size:15px;font-weight:500;color:var(--text);margin-bottom:6px">${escHtml(t.name)}・合約書</div>
         <div style="font-size:13px;color:var(--sub);margin-bottom:4px">客戶編號：${result.clientId}</div>
         <div style="font-size:12px;color:var(--sub)">${result.fileName}</div>
       </div>
@@ -3737,6 +4055,7 @@ async function initApp(){
     try { renderDashStats(); } catch(e) { console.warn('renderDashStats:', e); }
     try { updateReviewCountBadge(); } catch(e) { console.warn('updateReviewCountBadge:', e); }
     try { renderAnalytics(); } catch(e) { console.warn('renderAnalytics:', e); }
+    try { renderCareSummary(); } catch(e) { console.warn('renderCareSummary:', e); }   // ADM-B8
   }
 
   renderAll();
